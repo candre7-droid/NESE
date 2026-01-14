@@ -6,7 +6,9 @@ export class GeminiService {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Obtenim la clau de forma segura per evitar ReferenceError: process is not defined
+    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+    this.ai = new GoogleGenAI({ apiKey: apiKey || '' });
   }
 
   async generateConclusions(input: string, selectedBlocks: number[], level?: string): Promise<string> {

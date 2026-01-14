@@ -7,12 +7,23 @@ export class GoogleDriveService {
   private tokenClient: any = null;
   private gisInited: boolean = false;
 
-  // Intentem obtenir les claus de les variables d'entorn
-  private CLIENT_ID = (process.env as any).GOOGLE_CLIENT_ID || '';
-  private API_KEY = (process.env as any).GOOGLE_API_KEY || process.env.API_KEY || '';
+  // Accés segur a variables d'entorn per evitar crashes al navegador
+  private getClientId(): string {
+    if (typeof process !== 'undefined' && process.env) {
+      return (process.env as any).GOOGLE_CLIENT_ID || '';
+    }
+    return '';
+  }
+
+  private getApiKey(): string {
+    if (typeof process !== 'undefined' && process.env) {
+      return (process.env as any).GOOGLE_API_KEY || process.env.API_KEY || '';
+    }
+    return '';
+  }
 
   constructor() {
-    // No inicialitzem automàticament al constructor per evitar errors si les variables no estan llistes
+    // Inicialització buida per seguretat
   }
 
   private initGis() {
@@ -20,13 +31,14 @@ export class GoogleDriveService {
       throw new Error("La llibreria de Google Identity Services no s'ha carregat correctament.");
     }
     
-    if (!this.CLIENT_ID) {
-      throw new Error("Falta el paràmetre 'GOOGLE_CLIENT_ID'. Configura-lo per utilitzar Google Drive.");
+    const clientId = this.getClientId();
+    if (!clientId) {
+      throw new Error("Falta el paràmetre 'GOOGLE_CLIENT_ID'. Configura-lo a les variables d'entorn del projecte.");
     }
 
     try {
       this.tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: this.CLIENT_ID,
+        client_id: clientId,
         scope: 'https://www.googleapis.com/auth/drive.readonly',
         callback: (response: any) => {
           if (response.error !== undefined) {
@@ -57,8 +69,9 @@ export class GoogleDriveService {
   }
 
   async openPicker(onSelect: (content: string, fileName: string) => void): Promise<void> {
-    if (!this.CLIENT_ID) {
-      throw new Error("ID de client de Google no configurat. Cal un 'GOOGLE_CLIENT_ID' vàlid.");
+    const clientId = this.getClientId();
+    if (!clientId) {
+      throw new Error("ID de client de Google no configurat. Cal un 'GOOGLE_CLIENT_ID' vàlid a les variables d'entorn.");
     }
 
     if (!this.gisInited) {
@@ -75,8 +88,11 @@ export class GoogleDriveService {
   }
 
   private async createPicker(onSelect?: (content: string, fileName: string) => void) {
-    if (!this.API_KEY) {
-      console.warn("API_KEY de Google no trobada. El Picker podria fallar.");
+    const apiKey = this.getApiKey();
+    const clientId = this.getClientId();
+    
+    if (!apiKey) {
+      console.warn("API_KEY de Google no trobada. El Picker podria fallar si no hi ha una clau vàlida.");
     }
 
     const view = new google.picker.View(google.picker.ViewId.DOCS);
@@ -85,8 +101,8 @@ export class GoogleDriveService {
     const picker = new google.picker.PickerBuilder()
       .enableFeature(google.picker.Feature.NAV_HIDDEN)
       .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-      .setDeveloperKey(this.API_KEY)
-      .setAppId(this.CLIENT_ID)
+      .setDeveloperKey(apiKey)
+      .setAppId(clientId)
       .setOAuthToken(this.accessToken)
       .addView(view)
       .addView(new google.picker.DocsUploadView())
@@ -120,7 +136,7 @@ export class GoogleDriveService {
       if (!response.ok) throw new Error('Error descarregant el fitxer de Drive');
       
       if (doc.mimeType === 'application/pdf') {
-        return `[Contingut del PDF '${doc.name}' de Drive: L'extracció de text de PDFs de Drive requereix un processament addicional de seguretat o una descàrrega local prèvia per evitar bloquejos de CORS.]`;
+        return `[Contingut del PDF '${doc.name}' de Drive: L'extracció de text de PDFs des de Drive requereix permisos addicionals de descàrrega o un servei de processament intermedi.]`;
       }
 
       return await response.text();
