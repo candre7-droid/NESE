@@ -4,17 +4,22 @@ import { SYSTEM_PROMPT_PART_1, SYSTEM_PROMPT_PART_2 } from "../constants";
 export class GeminiService {
   private getApiKey(): string {
     try {
-      // @ts-ignore
-      const apiKey = process?.env?.API_KEY || window?.process?.env?.API_KEY || "";
-      return apiKey;
+      // Intentem obtenir la clau tant de process.env com del polyfill de window
+      if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        return process.env.API_KEY;
+      }
+      if (typeof window !== 'undefined' && (window as any).process?.env?.API_KEY) {
+        return (window as any).process.env.API_KEY;
+      }
     } catch (e) {
-      return "";
+      console.warn("No s'ha pogut recuperar l'API_KEY de l'entorn");
     }
+    return "";
   }
 
   async generateConclusions(input: string, selectedBlocks: number[], level?: string): Promise<string> {
     const apiKey = this.getApiKey();
-    if (!apiKey) return "Error: API_KEY no configurada a l'entorn.";
+    if (!apiKey) return "Error: API_KEY no configurada correctament a Vercel.";
     
     const ai = new GoogleGenAI({ apiKey });
     const blocksText = selectedBlocks.join(", ");
