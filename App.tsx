@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
 import { geminiService } from './services/geminiService';
 import { fileService } from './services/fileService';
-import { googleDriveService } from './services/googleDriveService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
@@ -28,6 +27,37 @@ const App: React.FC = () => {
   };
 
   const [report, setReport] = useState<ReportData>(initialReportState);
+  const prevNameRef = useRef('');
+
+  // Genera el text de la plantilla segons el nom de l'alumne
+  const getIntroTemplate = (name: string) => {
+    const displayName = name.trim() || 'XXX';
+    return `En l'avaluació psicopedagògica de ${displayName} observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:`;
+  };
+
+  // Efecte per gestionar la plantilla dinàmica al rawInput
+  useEffect(() => {
+    const currentName = report.studentName;
+    const oldTemplate = getIntroTemplate(prevNameRef.current);
+    const newTemplate = getIntroTemplate(currentName);
+
+    setReport(prev => {
+      // Si el camp està buit o només conté l'antiga plantilla, posem la nova
+      if (!prev.rawInput.trim() || prev.rawInput === oldTemplate) {
+        return { ...prev, rawInput: newTemplate };
+      }
+      
+      // Si el camp comença amb l'antiga plantilla, actualitzem només la capçalera
+      if (prev.rawInput.startsWith(oldTemplate)) {
+        return { ...prev, rawInput: prev.rawInput.replace(oldTemplate, newTemplate) };
+      }
+
+      // Si no hi ha plantilla però el nom ha canviat i l'usuari no ha escrit res, la posem
+      return prev;
+    });
+
+    prevNameRef.current = currentName;
+  }, [report.studentName]);
 
   // Carregar historial al muntar el component
   useEffect(() => {
@@ -66,23 +96,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGoogleDrive = async () => {
-    setFileProcessing(true);
-    setError(null);
-    try {
-      await googleDriveService.openPicker((content, fileName) => {
-        setReport(prev => ({ 
-          ...prev, 
-          rawInput: prev.rawInput + (prev.rawInput ? '\n\n' : '') + `[Contingut de Google Drive: ${fileName}]:\n` + content 
-        }));
-        setFileProcessing(false);
-      });
-    } catch (err: any) {
-      setError("No s'ha pogut accedir a Google Drive. Revisa la configuració del navegador.");
-      setFileProcessing(false);
-    }
-  };
-
   const toggleBlock = (id: number) => {
     setReport(prev => {
       const blocks = prev.selectedBlocks.includes(id)
@@ -93,8 +106,8 @@ const App: React.FC = () => {
   };
 
   const generateApartat1 = async () => {
-    if (!report.rawInput.trim()) {
-      setError("Si us plau, introdueix dades o notes de l'alumne.");
+    if (!report.rawInput.trim() || report.rawInput === getIntroTemplate(report.studentName)) {
+      setError("Si us plau, afegeix observacions o dades de l'alumne després de la introducció.");
       return;
     }
     if (report.selectedBlocks.length === 0) {
@@ -315,7 +328,7 @@ const App: React.FC = () => {
         {/* STEP 1: INPUT */}
         {step === AppStep.INPUT && (
           <div className="space-y-8 animate-fadeIn">
-            {/* 1. DADES DE L'ALUMNE - ARA A DALT DE TOT */}
+            {/* 1. DADES DE L'ALUMNE */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nom de l'alumne</label>
@@ -379,18 +392,9 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <label className={`cursor-pointer px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${fileProcessing ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
                     {fileProcessing ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-file-upload"></i>}
-                    <span>{fileProcessing ? '...' : 'Local'}</span>
+                    <span>{fileProcessing ? '...' : 'Adjuntar Fitxer'}</span>
                     <input type="file" accept=".txt,.pdf,.docx,.xlsx,.xls" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
                   </label>
-                  <button 
-                    onClick={handleGoogleDrive}
-                    disabled={fileProcessing}
-                    className={`px-4 py-2 bg-white border border-slate-200 rounded-xl transition-all flex items-center gap-2 text-xs font-bold shadow-sm ${fileProcessing ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-50'}`}
-                    title="Cerca a Google Drive"
-                  >
-                    <i className={`fab fa-google-drive ${fileProcessing ? 'text-slate-300' : 'text-blue-500'}`}></i>
-                    <span>Drive</span>
-                  </button>
                 </div>
               </div>
               <div className="relative">
@@ -404,8 +408,8 @@ const App: React.FC = () => {
                   <div className="absolute bottom-4 right-4 flex items-center gap-2">
                     {fileProcessing && <span className="text-xs text-blue-600 font-bold animate-pulse"><i className="fas fa-sync fa-spin mr-1"></i> Carregant...</span>}
                     {report.rawInput && !fileProcessing && (
-                      <button onClick={() => setReport(prev => ({ ...prev, rawInput: '' }))} className="text-xs font-bold text-red-500 hover:text-red-700 bg-white px-3 py-1.5 rounded-lg border border-red-100 shadow-sm transition-all">
-                        <i className="fas fa-trash-alt mr-1"></i> Buidar text
+                      <button onClick={() => setReport(prev => ({ ...prev, rawInput: getIntroTemplate(report.studentName) }))} className="text-xs font-bold text-red-500 hover:text-red-700 bg-white px-3 py-1.5 rounded-lg border border-red-100 shadow-sm transition-all">
+                        <i className="fas fa-eraser mr-1"></i> Reiniciar
                       </button>
                     )}
                   </div>
