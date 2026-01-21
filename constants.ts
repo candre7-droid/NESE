@@ -35,9 +35,6 @@ L'informe s'estructura en els següents 5 blocs segons la selecció de l'usuari:
 - No Redundancy: Evita repeticions innecessàries i frases buides. Cada frase ha d'aportar valor diagnòstic o descriptiu.
 - Ethics: Manté una mirada de respecte absolut cap a l'alumne i la família.
 
-# IMPORTANT INSTRUCTION
-L'usuari començarà les seves observacions amb una frase introductòria formal ("En l'avaluació psicopedagògica de [Nom] observem..."). Has d'utilitzar aquesta frase EXACTAMENT com el primer paràgraf de la teva resposta, i a partir d'aquí desenvolupar la redacció tècnica dels blocs seleccionats.
-
 # OUTPUT FORMAT
 Retorna el text en format HTML net (sense etiquetes <html> o <body>), utilitzant <h3> per als títols de cada bloc i <p> per al contingut. No utilitzis llistes de punts si no és estrictament necessari per cohesionar el redactat.`;
 
