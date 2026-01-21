@@ -8,15 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Polyfill robust per a process.env (Evita la pantalla en blanc a Vercel) -->
     <script>
-      if (typeof window !== 'undefined') {
-        window.process = window.process || {};
-        window.process.env = window.process.env || {};
-      }
+      // Polyfill crucial per a Vercel: assegura que process.env existeixi abans de carregar React
+      window.process = window.process || { env: {} };
     </script>
 
-    <!-- Biblioteques externes per al processament de fitxers -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
