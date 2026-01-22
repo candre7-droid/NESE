@@ -89,7 +89,7 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`Error de generació: ${err.message || 'No s\'ha pogut connectar amb la IA'}`);
+      setError(`${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ const App: React.FC = () => {
       setStep(AppStep.ORIENTATIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`Error de generació d'orientacions: ${err.message || 'S\'ha produït un error inesperat'}`);
+      setError(`${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -384,24 +384,24 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* CONTINGUT DE L'INFORME AMB MÉS ESPAIAT */}
-              <div className="space-y-24">
+              {/* CONTINGUT DE L'INFORME AMB MÉS ESPAIAT I NEGRETES REFORÇADES */}
+              <div className="space-y-32">
                 <section>
-                  <div className="mb-8">
+                  <div className="mb-10">
                     <h2 className="text-2xl font-black uppercase text-emerald-900 m-0">1. Conclusions de l'Avaluació</h2>
                     <div className="w-24 h-1.5 bg-emerald-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-4 prose-headings:font-bold" dangerouslySetInnerHTML={{__html: report.conclusions}} />
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-6 prose-headings:font-black prose-headings:text-emerald-800 prose-headings:mt-12 prose-headings:mb-4" dangerouslySetInnerHTML={{__html: report.conclusions}} />
                 </section>
 
                 <div className="page-break my-16"></div>
 
                 <section>
-                  <div className="mb-8">
+                  <div className="mb-10">
                     <h2 className="text-2xl font-black uppercase text-teal-900 m-0">2. Orientacions per a la Resposta Educativa</h2>
                     <div className="w-24 h-1.5 bg-teal-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-4 prose-headings:font-bold prose-li:mb-2" dangerouslySetInnerHTML={{__html: report.orientations}} />
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-6 prose-headings:font-black prose-headings:text-teal-800 prose-headings:mt-12 prose-headings:mb-4 prose-li:mb-3" dangerouslySetInnerHTML={{__html: report.orientations}} />
                 </section>
               </div>
 
