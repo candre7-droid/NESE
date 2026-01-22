@@ -275,7 +275,7 @@ const App: React.FC = () => {
           <div className="w-14 h-14 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-2xl flex items-center justify-center text-white text-3xl"><i className="fas fa-file-medical"></i></div>
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Elaboració de NESE</h1>
-            <p className="text-emerald-700 font-medium italic">Eina d'elaboració d'informes</p>
+            <p className="text-emerald-700 font-medium">Eina d'elaboració d'informes</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -368,7 +368,7 @@ const App: React.FC = () => {
               disabled={loading || !report.rawInput.trim() || report.selectedBlocks.length === 0} 
               className="w-full py-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-3xl font-extrabold hover:scale-[1.01] transition-all disabled:opacity-50 text-xl"
             >
-              {loading ? <><i className="fas fa-circle-notch fa-spin mr-3"></i> Elaborant Conclusions...</> : 'Generar Apartat 1: Conclusions'}
+              {loading ? <><i className="fas fa-circle-notch fa-spin mr-3"></i> Elaborant Conclusions...</> : "Generar conclusions de l'avaluació psicopedagògica"}
             </button>
           </div>
         )}
