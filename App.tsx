@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
 import { geminiService } from './services/geminiService';
@@ -13,6 +14,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [savedReports, setSavedReports] = useState<ReportData[]>([]);
+  const reportContentRef = useRef<HTMLDivElement>(null);
   
   const initialReportState: ReportData = {
     rawInput: '',
@@ -39,8 +41,13 @@ const App: React.FC = () => {
   }, []);
 
   const saveToLocalStorage = (reports: ReportData[]) => {
-    localStorage.setItem('nese_reports_history', JSON.stringify(reports));
-    setSavedReports(reports);
+    try {
+      localStorage.setItem('nese_reports_history', JSON.stringify(reports));
+      setSavedReports(reports);
+    } catch (e) {
+      console.error("Error guardant a localStorage", e);
+      setError("No s'ha pogut guardar l'historial.");
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,27 +122,131 @@ const App: React.FC = () => {
   };
 
   const saveReportToHistory = () => {
+    if (!report.rawInput.trim() && !report.studentName.trim() && !report.conclusions) {
+      setError("No hi ha dades suficients per guardar l'informe.");
+      return;
+    }
+
+    const newId = report.id || Math.random().toString(36).substr(2, 9);
     const newReport = { 
       ...report, 
-      id: report.id || Math.random().toString(36).substr(2, 9),
+      id: newId,
       timestamp: Date.now(),
       currentStep: step
     };
-    const updatedHistory = report.id ? savedReports.map(r => r.id === report.id ? newReport : r) : [newReport, ...savedReports];
-    saveToLocalStorage(updatedHistory);
+    
+    setSavedReports(prev => {
+      const exists = prev.find(r => r.id === newReport.id);
+      const updated = exists 
+        ? prev.map(r => r.id === newReport.id ? newReport : r) 
+        : [newReport, ...prev];
+      
+      localStorage.setItem('nese_reports_history', JSON.stringify(updated));
+      return updated;
+    });
+
     setReport(newReport);
-    alert("Informe guardat a l'historial local.");
+    alert("Informe guardat correctament a l'historial local.");
   };
 
   const reset = () => {
-    if (confirm("Segur que vols iniciar un nou informe? Es perdran les dades no guardades.")) window.location.reload();
+    const confirmation = window.confirm("Estàs segur que vols iniciar un nou informe? Es perdrà qualsevol canvi no guardat.");
+    if (confirmation) {
+      window.location.reload();
+    }
+  };
+
+  const downloadAsWord = () => {
+    if (!reportContentRef.current) return;
+
+    const header = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+            xmlns:w='urn:schemas-microsoft-com:office:word' 
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Informe NESE</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.5; color: #333; padding: 20px; }
+          h1 { color: #065f46; text-align: center; text-transform: uppercase; border-bottom: 2px solid #065f46; padding-bottom: 10px; margin-bottom: 30px; }
+          h2 { color: #065f46; text-transform: uppercase; margin-top: 40px; margin-bottom: 20px; border-left: 5px solid #065f46; padding-left: 10px; font-size: 16pt; }
+          h3 { color: #065f46; margin-top: 25px; margin-bottom: 15px; font-weight: bold; font-size: 14pt; }
+          p { margin-bottom: 20px; text-align: justify; line-height: 1.5; }
+          ul { margin-bottom: 20px; padding-left: 20px; }
+          li { margin-bottom: 12px; line-height: 1.5; }
+          .data-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; background-color: #f0fdf4; }
+          .data-table td { padding: 15px; border: 1px solid #d1fae5; }
+          .label { font-weight: bold; color: #065f46; font-size: 10pt; text-transform: uppercase; }
+          .value { font-size: 12pt; }
+          .section-break { margin-top: 50px; }
+        </style>
+      </head>
+      <body>
+    `;
+
+    const footer = "</body></html>";
+    
+    const content = `
+      <h1>Informe Psicopedagògic</h1>
+      <table class="data-table">
+        <tr>
+          <td><span class="label">Alumne/a:</span><br/><span class="value">${report.studentName || 'N/A'}</span></td>
+          <td><span class="label">Nivell:</span><br/><span class="value">${report.schoolLevel || 'N/A'}</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Curs Escolar:</span><br/><span class="value">${report.schoolYear || 'N/A'}</span></td>
+          <td><span class="label">Data:</span><br/><span class="value">${new Date().toLocaleDateString('ca-ES')}</span></td>
+        </tr>
+      </table>
+
+      <div class="section-break">
+        <h2>1. Conclusions de l'Avaluació</h2>
+        <div>${report.conclusions}</div>
+      </div>
+
+      <br clear="all" style="page-break-before:always" />
+
+      <div class="section-break">
+        <h2>2. Orientacions per a la Resposta Educativa</h2>
+        <div>${report.orientations}</div>
+      </div>
+    `;
+
+    const sourceHTML = header + content + footer;
+    
+    const blob = new Blob(['\ufeff', sourceHTML], {
+      type: 'application/msword'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Informe_NESE_${report.studentName || 'alumne'}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      <style>{`
+        .report-content { line-height: 1.5 !important; }
+        .report-content p { margin-bottom: 1.5rem !important; text-align: justify; }
+        .report-content h3 { margin-top: 2.5rem !important; margin-bottom: 1.25rem !important; font-weight: 800; }
+        .report-content ul { list-style-type: none !important; padding-left: 0.5rem !important; margin-left: 0 !important; margin-bottom: 1.5rem !important; }
+        .report-content li { margin-bottom: 0.75rem !important; line-height: 1.5 !important; }
+        .report-content section { margin-bottom: 4rem !important; }
+        
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; padding: 0 !important; margin: 0 !important; }
+          .report-container { border: none !important; box-shadow: none !important; padding: 0 !important; }
+        }
+      `}</style>
+
       {/* Historial Modal */}
       {showHistory && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-none border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
               <h2 className="text-xl font-bold text-slate-800">Historial d'informes</h2>
@@ -168,9 +279,9 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => setShowHistory(true)} className="px-5 py-2.5 text-slate-600 font-bold text-sm bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Historial</button>
-          <button onClick={saveReportToHistory} disabled={!report.rawInput.trim() && !report.studentName} className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 disabled:opacity-40 transition-all">Guardar</button>
-          <button onClick={reset} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Nou</button>
+          <button type="button" onClick={() => setShowHistory(true)} className="px-5 py-2.5 text-slate-600 font-bold text-sm bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Historial</button>
+          <button type="button" onClick={() => saveReportToHistory()} className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition-all">Guardar</button>
+          <button type="button" onClick={reset} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Nou informe</button>
         </div>
       </header>
 
@@ -178,7 +289,7 @@ const App: React.FC = () => {
         <StepIndicator currentStep={step} />
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-xl flex justify-between items-start animate-fadeIn">
+          <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-xl flex justify-between items-start animate-fadeIn no-print">
             <div className="flex gap-3">
               <i className="fas fa-exclamation-circle mt-1"></i>
               <p className="font-medium">{error}</p>
@@ -336,19 +447,18 @@ const App: React.FC = () => {
         {/* STEP 4: FINALIZE / PRINT */}
         {step === AppStep.FINALIZE && (
           <div className="space-y-10 animate-fadeIn">
-            <div className="flex justify-between no-print items-center">
+            <div className="flex flex-col sm:flex-row justify-between no-print items-center gap-4 border-b pb-6">
               <button onClick={() => setStep(AppStep.ORIENTATIONS)} className="text-slate-500 font-bold hover:text-slate-800 flex items-center gap-2">
                 <i className="fas fa-arrow-left"></i> Seguir editant
               </button>
-              <div className="flex gap-4">
-                <button onClick={saveReportToHistory} className="px-6 py-3 border-2 border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all">Guardar Còpia</button>
-                <button onClick={() => window.print()} className="px-8 py-3 bg-emerald-900 text-white rounded-2xl font-black hover:bg-black transition-all flex items-center gap-3">
-                  <i className="fas fa-print"></i> GENERAR PDF / IMPRIMIR
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={downloadAsWord} className="px-6 py-2.5 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <i className="fas fa-file-word"></i> DESCARREGAR WORD
                 </button>
               </div>
             </div>
             
-            <div className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden shadow-none">
+            <div ref={reportContentRef} className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden shadow-none">
               {/* Capçalera d'institució */}
               <div className="flex justify-between items-start mb-16 border-b pb-8 border-slate-100">
                 <div className="flex flex-col gap-1">
@@ -384,14 +494,14 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* CONTINGUT DE L'INFORME AMB MÉS ESPAIAT I NEGRETES REFORÇADES */}
-              <div className="space-y-32">
+              {/* CONTINGUT DE L'INFORME */}
+              <div className="space-y-12 report-content">
                 <section>
                   <div className="mb-10">
                     <h2 className="text-2xl font-black uppercase text-emerald-900 m-0">1. Conclusions de l'Avaluació</h2>
                     <div className="w-24 h-1.5 bg-emerald-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-6 prose-headings:font-black prose-headings:text-emerald-800 prose-headings:mt-12 prose-headings:mb-4" dangerouslySetInnerHTML={{__html: report.conclusions}} />
+                  <div className="text-slate-700" dangerouslySetInnerHTML={{__html: report.conclusions}} />
                 </section>
 
                 <div className="page-break my-16"></div>
@@ -401,7 +511,7 @@ const App: React.FC = () => {
                     <h2 className="text-2xl font-black uppercase text-teal-900 m-0">2. Orientacions per a la Resposta Educativa</h2>
                     <div className="w-24 h-1.5 bg-teal-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-6 prose-headings:font-black prose-headings:text-teal-800 prose-headings:mt-12 prose-headings:mb-4 prose-li:mb-3" dangerouslySetInnerHTML={{__html: report.orientations}} />
+                  <div className="text-slate-700" dangerouslySetInnerHTML={{__html: report.orientations}} />
                 </section>
               </div>
 
