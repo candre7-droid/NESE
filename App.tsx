@@ -14,7 +14,13 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [savedReports, setSavedReports] = useState<ReportData[]>([]);
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  
   const reportContentRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   
   const initialReportState: ReportData = {
     rawInput: '',
@@ -39,6 +45,10 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const saveToLocalStorage = (reports: ReportData[]) => {
     try {
@@ -118,6 +128,25 @@ const App: React.FC = () => {
       setError(`${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
+    const msg = chatInput;
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: msg }]);
+    setIsChatLoading(true);
+    
+    try {
+      const history = chatMessages.map(m => ({ 
+        role: m.role, 
+        parts: [{ text: m.content }] 
+      }));
+      const response = await geminiService.askAssistant(msg, report.rawInput, history);
+      setChatMessages(prev => [...prev, { role: 'model', content: response }]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -228,7 +257,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto pb-24">
       <style>{`
         .report-content { line-height: 1.5 !important; }
         .report-content p { margin-bottom: 1.5rem !important; text-align: justify; }
@@ -243,6 +272,62 @@ const App: React.FC = () => {
           .report-container { border: none !important; box-shadow: none !important; padding: 0 !important; }
         }
       `}</style>
+
+      {/* Floating Chat Assistant */}
+      <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${showChat ? 'w-[calc(100vw-3rem)] sm:w-[550px] h-[480px] max-h-[80vh] shadow-2xl scale-100 opacity-100' : 'w-16 h-16 scale-95 opacity-80 hover:opacity-100'}`}>
+        {!showChat ? (
+          <button 
+            onClick={() => setShowChat(true)} 
+            className="w-full h-full bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all p-3"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+              <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="white"/>
+            </svg>
+          </button>
+        ) : (
+          <div className="bg-white w-full h-full rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col no-print">
+            <div className="p-4 bg-emerald-700 text-white flex justify-between items-center shrink-0">
+              <span className="font-bold flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                  <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="white"/>
+                </svg>
+                Assistent Gemini
+              </span>
+              <button onClick={() => setShowChat(false)} className="hover:text-emerald-200 p-1"><i className="fas fa-times"></i></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+              {chatMessages.length === 0 && <p className="text-xs text-slate-400 text-center mt-10 italic">Pregunta sobre dades de l'alumne o dubtes sobre el Decret 150/2017.</p>}
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-xs ${m.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'}`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {isChatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-100 p-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1">
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="p-3 border-t bg-white flex gap-2 shrink-0">
+              <input 
+                value={chatInput} 
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Escriu..." 
+                className="flex-1 text-xs p-2 outline-none bg-slate-50 rounded-lg focus:ring-1 focus:ring-emerald-500"
+              />
+              <button onClick={handleSendMessage} disabled={isChatLoading} className="p-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 transition-colors"><i className="fas fa-paper-plane"></i></button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Historial Modal */}
       {showHistory && (
@@ -349,18 +434,23 @@ const App: React.FC = () => {
                   <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm">2</span>
                   Observacions i Dades de l'Avaluació
                 </h2>
-                <label className="cursor-pointer px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all flex items-center gap-2">
-                  <i className="fas fa-cloud-upload-alt"></i>
-                  {fileProcessing ? 'Llegint...' : 'Adjuntar Document (PDF, Word...)'}
-                  <input type="file" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
-                </label>
+                <div className="flex gap-2">
+                  <label className="cursor-pointer px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all flex items-center gap-2">
+                    <i className="fas fa-cloud-upload-alt"></i>
+                    {fileProcessing ? 'Llegint...' : 'Adjuntar Document'}
+                    <input type="file" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
+                  </label>
+                </div>
               </div>
-              <textarea 
-                value={report.rawInput} 
-                onChange={e => setReport({...report, rawInput: e.target.value})} 
-                className="w-full h-96 p-6 border border-slate-200 rounded-3xl outline-none bg-slate-50 focus:bg-white focus:ring-4 focus:ring-emerald-50 transition-all resize-none text-slate-700 leading-relaxed" 
-                placeholder="Escriu o enganxa aquí les notes de l'avaluació, informes previs, o qualsevol informació rellevant per a la IA..." 
-              />
+              
+              <div className="w-full">
+                <textarea 
+                  value={report.rawInput} 
+                  onChange={e => setReport({...report, rawInput: e.target.value})} 
+                  className="w-full h-96 p-6 border border-slate-200 rounded-3xl outline-none bg-slate-50 focus:bg-white focus:ring-4 focus:ring-emerald-50 transition-all resize-none text-slate-700 leading-relaxed" 
+                  placeholder="Escriu o enganxa aquí les notes de l'avaluació..." 
+                />
+              </div>
             </div>
 
             <button 
