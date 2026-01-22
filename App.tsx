@@ -56,10 +56,10 @@ const App: React.FC = () => {
         rawInput: prev.rawInput + (prev.rawInput ? '\n\n' : '') + `[Contingut de ${file.name}]:\n` + text 
       }));
     } catch (err: any) {
-      setError(`Error fitxer: ${err.message || 'Error desconegut'}`);
+      setError(`Error en el fitxer: ${err.message || 'Error desconegut'}`);
     } finally {
       setFileProcessing(false);
-      e.target.value = '';
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -74,11 +74,11 @@ const App: React.FC = () => {
 
   const generateApartat1 = async () => {
     if (!report.rawInput.trim()) {
-      setError("Si us plau, introdueix dades o notes de l'alumne.");
+      setError("Si us plau, introdueix dades o notes de l'alumne a l'apartat d'observacions.");
       return;
     }
     if (report.selectedBlocks.length === 0) {
-      setError("Selecciona almenys un bloc.");
+      setError("Selecciona almenys un dels blocs NESE superiors.");
       return;
     }
     setLoading(true);
@@ -87,16 +87,17 @@ const App: React.FC = () => {
       const result = await geminiService.generateConclusions(report.rawInput, report.selectedBlocks, report.schoolLevel);
       setReport(prev => ({ ...prev, conclusions: result, currentStep: AppStep.CONCLUSIONS }));
       setStep(AppStep.CONCLUSIONS);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`Error IA: ${err.message || 'No s\'ha pogut generar l\'apartat 1'}`);
+      setError(`Error de generació: ${err.message || 'No s\'ha pogut connectar amb la IA'}`);
     } finally {
       setLoading(false);
     }
   };
 
   const generateApartat2 = async () => {
-    if (!report.conclusions || report.conclusions.length < 10) {
-      setError("No hi ha conclusions suficients per generar les orientacions.");
+    if (!report.conclusions || report.conclusions.trim().length < 20) {
+      setError("Cal que hi hagi contingut a l'apartat de conclusions per poder generar les orientacions.");
       return;
     }
     setLoading(true);
@@ -105,9 +106,9 @@ const App: React.FC = () => {
       const result = await geminiService.generateOrientations(report.conclusions, report.schoolLevel);
       setReport(prev => ({ ...prev, orientations: result, currentStep: AppStep.ORIENTATIONS }));
       setStep(AppStep.ORIENTATIONS);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`Error IA: ${err.message || 'No s\'ha pogut generar l\'apartat 2'}`);
-      // Ens quedem a la pantalla actual si falla
+      setError(`Error de generació d'orientacions: ${err.message || 'S\'ha produït un error inesperat'}`);
     } finally {
       setLoading(false);
     }
@@ -123,31 +124,32 @@ const App: React.FC = () => {
     const updatedHistory = report.id ? savedReports.map(r => r.id === report.id ? newReport : r) : [newReport, ...savedReports];
     saveToLocalStorage(updatedHistory);
     setReport(newReport);
-    alert("Informe guardat.");
+    alert("Informe guardat a l'historial local.");
   };
 
   const reset = () => {
-    if (confirm("Vols iniciar un nou informe?")) window.location.reload();
+    if (confirm("Segur que vols iniciar un nou informe? Es perdran les dades no guardades.")) window.location.reload();
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      {/* Historial Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-none overflow-hidden flex flex-col max-h-[80vh] border border-slate-200">
             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-bold">Historial</h2>
-              <button onClick={() => setShowHistory(false)} className="p-2"><i className="fas fa-times"></i></button>
+              <h2 className="text-xl font-bold text-slate-800">Historial d'informes</h2>
+              <button onClick={() => setShowHistory(false)} className="p-2 text-slate-400 hover:text-slate-600"><i className="fas fa-times"></i></button>
             </div>
             <div className="overflow-y-auto p-6 space-y-4">
-              {savedReports.length === 0 ? <p className="text-center text-slate-400">No hi ha informes guardats.</p> : 
+              {savedReports.length === 0 ? <p className="text-center text-slate-400 py-10">No hi ha informes guardats encara.</p> : 
                 savedReports.map(r => (
-                  <div key={r.id} onClick={() => { setReport(r); setStep(r.currentStep || AppStep.INPUT); setShowHistory(false); }} className="p-4 border rounded-2xl hover:bg-blue-50 cursor-pointer flex justify-between items-center group">
+                  <div key={r.id} onClick={() => { setReport(r); setStep(r.currentStep || AppStep.INPUT); setShowHistory(false); }} className="p-4 border border-slate-100 rounded-2xl hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer flex justify-between items-center group transition-all">
                     <div>
-                      <h4 className="font-bold">{r.studentName || 'Sense nom'}</h4>
-                      <p className="text-xs text-slate-500">{new Date(r.timestamp!).toLocaleDateString()}</p>
+                      <h4 className="font-bold text-slate-700">{r.studentName || 'Alumne sense nom'}</h4>
+                      <p className="text-xs text-slate-500">{new Date(r.timestamp!).toLocaleString()}</p>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); saveToLocalStorage(savedReports.filter(x => x.id !== r.id)); }} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500"><i className="fas fa-trash-alt"></i></button>
+                    <button onClick={(e) => { e.stopPropagation(); if(confirm("Eliminar?")) saveToLocalStorage(savedReports.filter(x => x.id !== r.id)); }} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all"><i className="fas fa-trash-alt"></i></button>
                   </div>
                 ))
               }
@@ -156,122 +158,264 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <header className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between mb-8 no-print">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg"><i className="fas fa-file-medical"></i></div>
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row items-center justify-between mb-10 no-print gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-2xl flex items-center justify-center text-white text-3xl"><i className="fas fa-file-medical"></i></div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Elaboració de NESE</h1>
-            <p className="text-slate-500 text-sm">IA per a informes psicopedagògics</p>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Elaboració de NESE</h1>
+            <p className="text-emerald-700 font-medium italic">Eina d'elaboració d'informes</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowHistory(true)} className="px-4 py-2 text-slate-600 font-bold text-sm">Historial</button>
-          <button onClick={saveReportToHistory} disabled={!report.rawInput.trim() && !report.studentName} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm disabled:opacity-50">Guardar</button>
-          <button onClick={reset} className="px-4 py-2 border rounded-xl font-bold text-sm">Nou</button>
+        <div className="flex gap-3">
+          <button onClick={() => setShowHistory(true)} className="px-5 py-2.5 text-slate-600 font-bold text-sm bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Historial</button>
+          <button onClick={saveReportToHistory} disabled={!report.rawInput.trim() && !report.studentName} className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 disabled:opacity-40 transition-all">Guardar</button>
+          <button onClick={reset} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Nou</button>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto">
+      <main>
         <StepIndicator currentStep={step} />
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 flex justify-between items-center animate-fadeIn">
-            <span>{error}</span>
-            <button onClick={() => setError(null)}><i className="fas fa-times"></i></button>
+          <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-xl flex justify-between items-start animate-fadeIn">
+            <div className="flex gap-3">
+              <i className="fas fa-exclamation-circle mt-1"></i>
+              <p className="font-medium">{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 px-2"><i className="fas fa-times"></i></button>
           </div>
         )}
 
+        {/* STEP 1: INPUT */}
         {step === AppStep.INPUT && (
           <div className="space-y-8 animate-fadeIn">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <input type="text" value={report.studentName} onChange={e => setReport({...report, studentName: e.target.value})} className="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nom de l'alumne" />
-              <select value={report.schoolLevel} onChange={e => setReport({...report, schoolLevel: e.target.value})} className="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Selecciona nivell...</option>
-                {SCHOOL_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-              <input type="text" value={report.schoolYear} onChange={e => setReport({...report, schoolYear: e.target.value})} className="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Curs (ex 2024-25)" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-3xl border border-slate-100">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nom de l'alumne/a</label>
+                <input type="text" value={report.studentName} onChange={e => setReport({...report, studentName: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white transition-all" placeholder="Ex: Marc G. P." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nivell Educatiu</label>
+                <select value={report.schoolLevel} onChange={e => setReport({...report, schoolLevel: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white transition-all appearance-none">
+                  <option value="">Selecciona nivell...</option>
+                  {SCHOOL_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Curs Escolar</label>
+                <input type="text" value={report.schoolYear} onChange={e => setReport({...report, schoolYear: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white transition-all" placeholder="Ex: 2024-2025" />
+              </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4">1. Blocs NESE</h2>
-              <div className="flex flex-col gap-2">
+            <div className="bg-white p-8 rounded-3xl border border-slate-100">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-3 text-slate-800">
+                <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm">1</span>
+                Selecció de Blocs NESE
+              </h2>
+              <div className="grid grid-cols-1 gap-3">
                 {BLOCK_OPTIONS.map(block => (
-                  <button key={block.id} onClick={() => toggleBlock(block.id)} className={`text-left p-4 rounded-xl border transition-all ${report.selectedBlocks.includes(block.id) ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'bg-white hover:border-slate-300'}`}>
-                    <span className="font-bold text-sm">{block.label}</span>
+                  <button 
+                    key={block.id} 
+                    onClick={() => toggleBlock(block.id)} 
+                    className={`text-left p-5 rounded-2xl border-2 transition-all group ${report.selectedBlocks.includes(block.id) ? 'border-emerald-700 bg-emerald-50/50 ring-4 ring-emerald-50' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${report.selectedBlocks.includes(block.id) ? 'bg-emerald-700 border-emerald-700 text-white' : 'border-slate-300'}`}>
+                        {report.selectedBlocks.includes(block.id) && <i className="fas fa-check text-[10px]"></i>}
+                      </div>
+                      <span className="font-bold text-sm text-slate-700 leading-tight">{block.label}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed opacity-80 group-hover:opacity-100">{block.description}</p>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">2. Observacions i Notes</h2>
-                <label className="cursor-pointer px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all">
-                  {fileProcessing ? 'Processant...' : 'Adjuntar Document'}
+            <div className="bg-white p-8 rounded-3xl border border-slate-100">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h2 className="text-xl font-bold flex items-center gap-3 text-slate-800">
+                  <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm">2</span>
+                  Observacions i Dades de l'Avaluació
+                </h2>
+                <label className="cursor-pointer px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all flex items-center gap-2">
+                  <i className="fas fa-cloud-upload-alt"></i>
+                  {fileProcessing ? 'Llegint...' : 'Adjuntar Document (PDF, Word...)'}
                   <input type="file" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
                 </label>
               </div>
-              <textarea value={report.rawInput} onChange={e => setReport({...report, rawInput: e.target.value})} className="w-full h-80 p-5 border rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all resize-none" placeholder="Enganxa aquí les notes de l'avaluació..." />
+              <textarea 
+                value={report.rawInput} 
+                onChange={e => setReport({...report, rawInput: e.target.value})} 
+                className="w-full h-96 p-6 border border-slate-200 rounded-3xl outline-none bg-slate-50 focus:bg-white focus:ring-4 focus:ring-emerald-50 transition-all resize-none text-slate-700 leading-relaxed" 
+                placeholder="Escriu o enganxa aquí les notes de l'avaluació, informes previs, o qualezvol informació rellevant per a la IA..." 
+              />
             </div>
 
-            <button onClick={generateApartat1} disabled={loading || !report.rawInput.trim()} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50 text-lg">
-              {loading ? <><i className="fas fa-spinner fa-spin mr-2"></i> Generant Apartat 1...</> : 'Generar Conclusions'}
+            <button 
+              onClick={generateApartat1} 
+              disabled={loading || !report.rawInput.trim() || report.selectedBlocks.length === 0} 
+              className="w-full py-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-3xl font-extrabold hover:scale-[1.01] transition-all disabled:opacity-50 text-xl"
+            >
+              {loading ? <><i className="fas fa-circle-notch fa-spin mr-3"></i> Elaborant Conclusions...</> : 'Generar Apartat 1: Conclusions'}
             </button>
           </div>
         )}
 
+        {/* STEP 2: CONCLUSIONS */}
         {step === AppStep.CONCLUSIONS && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-8 animate-fadeIn">
             <div className="flex justify-between items-center no-print">
-              <button onClick={() => setStep(AppStep.INPUT)} className="text-slate-500 font-medium hover:text-slate-800 transition-colors">← Tornar a dades</button>
-              <button onClick={generateApartat2} disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50">
-                {loading ? <><i className="fas fa-spinner fa-spin mr-2"></i> Generant...</> : 'Generar Orientacions →'}
+              <button onClick={() => setStep(AppStep.INPUT)} className="text-slate-500 font-bold flex items-center gap-2 hover:text-emerald-800 transition-all group">
+                <i className="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Tornar a l'edició de dades
+              </button>
+              <button 
+                onClick={generateApartat2} 
+                disabled={loading} 
+                className="px-8 py-3 bg-emerald-700 text-white rounded-2xl font-bold hover:bg-emerald-800 transition-all flex items-center gap-3 disabled:opacity-50"
+              >
+                {loading ? <><i className="fas fa-spinner fa-spin"></i> Generant Orientacions...</> : <>Generar Orientacions <i className="fas fa-arrow-right"></i></>}
               </button>
             </div>
-            <RichTextEditor label="APARTAT 1: CONCLUSIONS" value={report.conclusions} onChange={v => setReport({...report, conclusions: v})} />
-          </div>
-        )}
+            
+            <RichTextEditor 
+              label="APARTAT 1: CONCLUSIONS DE L'AVALUACIÓ" 
+              value={report.conclusions} 
+              onChange={v => setReport({...report, conclusions: v})} 
+            />
 
-        {step === AppStep.ORIENTATIONS && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="flex justify-between items-center no-print">
-              <button onClick={() => setStep(AppStep.CONCLUSIONS)} className="text-slate-500 font-medium hover:text-slate-800 transition-colors">← Tornar a conclusions</button>
-              <button onClick={() => setStep(AppStep.FINALIZE)} className="px-6 py-2 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all">Revisió Final</button>
-            </div>
-            <RichTextEditor label="APARTAT 2: ORIENTACIONS" value={report.orientations} onChange={v => setReport({...report, orientations: v})} />
-          </div>
-        )}
-
-        {step === AppStep.FINALIZE && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="flex justify-between no-print">
-              <button onClick={() => setStep(AppStep.ORIENTATIONS)} className="text-slate-500 font-medium hover:text-slate-800">← Editar orientacions</button>
-              <button onClick={() => window.print()} className="px-6 py-2 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all"><i className="fas fa-print mr-2"></i> Imprimir PDF</button>
-            </div>
-            <div className="bg-white p-12 border report-container shadow-sm prose prose-slate max-w-none">
-              <h1 className="text-center uppercase underline mb-8">Informe de Reconeixement NESE</h1>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <p>Alumne/a: <strong>{report.studentName || '________________'}</strong></p>
-                <p>Curs: <strong>{report.schoolYear || '________________'}</strong></p>
-                <p>Nivell: <strong>{report.schoolLevel || '________________'}</strong></p>
-                <p>Data: <strong>{new Date().toLocaleDateString()}</strong></p>
+            <div className="bg-emerald-50 p-8 rounded-3xl border border-emerald-100 text-center flex flex-col items-center gap-4 no-print">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xl"><i className="fas fa-lightbulb"></i></div>
+              <div>
+                <h3 className="text-lg font-bold text-emerald-900">Pas següent: Orientacions Educatives</h3>
+                <p className="text-emerald-800 text-sm max-w-lg mx-auto mt-1">Un cop hagis revisat les conclusions anteriors, fes clic al botó de sota per generar automàticament les propostes de suport i mesures segons el Decret 150/2017.</p>
               </div>
-              <hr className="my-8" />
-              <h3>1. CONCLUSIONS DE L'AVALUACIÓ</h3>
-              <div dangerouslySetInnerHTML={{__html: report.conclusions}} />
-              <div className="page-break my-12"></div>
-              <h3>2. ORIENTACIONS PER A LA RESPOSTA EDUCATIVA</h3>
-              <div dangerouslySetInnerHTML={{__html: report.orientations}} />
-              <div className="mt-20 flex justify-end">
-                <div className="text-center border-t border-slate-300 pt-4 px-8">
-                  <p className="text-xs text-slate-400 mb-8 italic">Signat per:</p>
-                  <p className="font-bold">Equip d'Orientació Psicopedagògica</p>
+              <button 
+                onClick={generateApartat2} 
+                disabled={loading} 
+                className="mt-2 px-10 py-5 bg-emerald-700 text-white rounded-2xl font-black text-xl hover:bg-emerald-800 hover:scale-[1.02] transition-all flex items-center gap-4 disabled:opacity-50"
+              >
+                {loading ? <><i className="fas fa-circle-notch fa-spin"></i> Elaborant Orientacions...</> : <>ELABORAR ORIENTACIONS <i className="fas fa-wand-magic-sparkles"></i></>}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: ORIENTATIONS */}
+        {step === AppStep.ORIENTATIONS && (
+          <div className="space-y-8 animate-fadeIn">
+            <div className="flex justify-between items-center no-print">
+              <button onClick={() => setStep(AppStep.CONCLUSIONS)} className="text-slate-500 font-bold flex items-center gap-2 hover:text-emerald-800 transition-all">
+                <i className="fas fa-arrow-left"></i> Editar Conclusions
+              </button>
+              <button 
+                onClick={() => setStep(AppStep.FINALIZE)} 
+                className="px-8 py-3 bg-green-700 text-white rounded-2xl font-bold hover:bg-green-800 transition-all flex items-center gap-3"
+              >
+                Vista Prèvia Final <i className="fas fa-check-circle"></i>
+              </button>
+            </div>
+            
+            <RichTextEditor 
+              label="APARTAT 2: ORIENTACIONS PER A LA RESPOSTA EDUCATIVA" 
+              value={report.orientations} 
+              onChange={v => setReport({...report, orientations: v})} 
+            />
+
+            <div className="flex justify-center pt-6 no-print">
+              <button 
+                onClick={() => setStep(AppStep.FINALIZE)} 
+                className="px-12 py-5 bg-green-700 text-white rounded-2xl font-black text-xl hover:bg-green-800 hover:scale-[1.02] transition-all flex items-center gap-4"
+              >
+                CONCLOURE INFORME <i className="fas fa-flag-checkered"></i>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: FINALIZE / PRINT */}
+        {step === AppStep.FINALIZE && (
+          <div className="space-y-10 animate-fadeIn">
+            <div className="flex justify-between no-print items-center">
+              <button onClick={() => setStep(AppStep.ORIENTATIONS)} className="text-slate-500 font-bold hover:text-slate-800 flex items-center gap-2">
+                <i className="fas fa-arrow-left"></i> Seguir editant
+              </button>
+              <div className="flex gap-4">
+                <button onClick={saveReportToHistory} className="px-6 py-3 border-2 border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all">Guardar Còpia</button>
+                <button onClick={() => window.print()} className="px-8 py-3 bg-emerald-900 text-white rounded-2xl font-black hover:bg-black transition-all flex items-center gap-3">
+                  <i className="fas fa-print"></i> GENERAR PDF / IMPRIMIR
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden">
+              {/* Estil per a la impressió de capçalera d'institució */}
+              <div className="flex justify-between items-start mb-16 border-b pb-8 border-slate-100">
+                <div className="flex flex-col gap-1">
+                  <h1 className="text-2xl font-black text-emerald-800 m-0 p-0 leading-none uppercase">EQUIP D'ORIENTACIÓ</h1>
+                  <p className="text-xs font-bold text-slate-400 m-0 uppercase tracking-widest">Generalitat de Catalunya • Departament d'Educació</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-700 m-0 uppercase">Informe de Reconeixement NESE</p>
+                  <p className="text-xs text-slate-400 m-0">Segons Decret 150/2017</p>
+                </div>
+              </div>
+
+              <div className="mb-12">
+                <h1 className="text-center text-3xl font-black uppercase underline decoration-emerald-700/30 underline-offset-8 mb-10">Informe Psicopedagògic</h1>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 bg-emerald-50/30 p-8 rounded-3xl border border-emerald-100 mb-10">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Alumne/a</span>
+                    <span className="text-lg font-bold text-slate-800">{report.studentName || '________________________________'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Nivell Educatiu</span>
+                    <span className="text-lg font-bold text-slate-800">{report.schoolLevel || '________________________________'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Curs Escolar</span>
+                    <span className="text-lg font-bold text-slate-800">{report.schoolYear || '________________________________'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Data de l'Informe</span>
+                    <span className="text-lg font-bold text-slate-800">{new Date().toLocaleDateString('ca-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-12">
+                <section>
+                  <h2 className="text-xl font-black border-l-4 border-emerald-700 pl-4 mb-6 uppercase text-emerald-900">1. Conclusions de l'Avaluació</h2>
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base" dangerouslySetInnerHTML={{__html: report.conclusions}} />
+                </section>
+
+                <div className="page-break my-16"></div>
+
+                <section>
+                  <h2 className="text-xl font-black border-l-4 border-teal-700 pl-4 mb-6 uppercase text-teal-900">2. Orientacions per a la Resposta Educativa</h2>
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base" dangerouslySetInnerHTML={{__html: report.orientations}} />
+                </section>
+              </div>
+
+              <div className="mt-24 pt-12 border-t border-slate-100 flex justify-end">
+                <div className="text-center w-64">
+                  <div className="h-20 flex items-center justify-center italic text-slate-300 text-xs mb-2">Signatura Digital / Segell</div>
+                  <hr className="border-emerald-200" />
+                  <p className="mt-4 font-black text-emerald-900 text-sm">Equip d'Orientació</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">Referent de l'Informe</p>
                 </div>
               </div>
             </div>
           </div>
         )}
       </main>
+      
+      <footer className="mt-20 py-8 border-t border-slate-200 text-center no-print">
+        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest flex items-center justify-center gap-2">
+          Eina Professional de Suport a l'Avaluació <i className="fas fa-leaf text-emerald-600"></i> NESE AI 2024
+        </p>
+      </footer>
     </div>
   );
 };
