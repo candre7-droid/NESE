@@ -136,7 +136,7 @@ const App: React.FC = () => {
       {/* Historial Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-none overflow-hidden flex flex-col max-h-[80vh] border border-slate-200">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-none border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
               <h2 className="text-xl font-bold text-slate-800">Historial d'informes</h2>
               <button onClick={() => setShowHistory(false)} className="p-2 text-slate-400 hover:text-slate-600"><i className="fas fa-times"></i></button>
@@ -248,7 +248,7 @@ const App: React.FC = () => {
                 value={report.rawInput} 
                 onChange={e => setReport({...report, rawInput: e.target.value})} 
                 className="w-full h-96 p-6 border border-slate-200 rounded-3xl outline-none bg-slate-50 focus:bg-white focus:ring-4 focus:ring-emerald-50 transition-all resize-none text-slate-700 leading-relaxed" 
-                placeholder="Escriu o enganxa aquí les notes de l'avaluació, informes previs, o qualezvol informació rellevant per a la IA..." 
+                placeholder="Escriu o enganxa aquí les notes de l'avaluació, informes previs, o qualsevol informació rellevant per a la IA..." 
               />
             </div>
 
@@ -348,8 +348,8 @@ const App: React.FC = () => {
               </div>
             </div>
             
-            <div className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden">
-              {/* Estil per a la impressió de capçalera d'institució */}
+            <div className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden shadow-none">
+              {/* Capçalera d'institució */}
               <div className="flex justify-between items-start mb-16 border-b pb-8 border-slate-100">
                 <div className="flex flex-col gap-1">
                   <h1 className="text-2xl font-black text-emerald-800 m-0 p-0 leading-none uppercase">EQUIP D'ORIENTACIÓ</h1>
@@ -384,23 +384,30 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-12">
+              {/* CONTINGUT DE L'INFORME AMB MÉS ESPAIAT */}
+              <div className="space-y-24">
                 <section>
-                  <h2 className="text-xl font-black border-l-4 border-emerald-700 pl-4 mb-6 uppercase text-emerald-900">1. Conclusions de l'Avaluació</h2>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base" dangerouslySetInnerHTML={{__html: report.conclusions}} />
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-black uppercase text-emerald-900 m-0">1. Conclusions de l'Avaluació</h2>
+                    <div className="w-24 h-1.5 bg-emerald-700 mt-2"></div>
+                  </div>
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-4 prose-headings:font-bold" dangerouslySetInnerHTML={{__html: report.conclusions}} />
                 </section>
 
                 <div className="page-break my-16"></div>
 
                 <section>
-                  <h2 className="text-xl font-black border-l-4 border-teal-700 pl-4 mb-6 uppercase text-teal-900">2. Orientacions per a la Resposta Educativa</h2>
-                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base" dangerouslySetInnerHTML={{__html: report.orientations}} />
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-black uppercase text-teal-900 m-0">2. Orientacions per a la Resposta Educativa</h2>
+                    <div className="w-24 h-1.5 bg-teal-700 mt-2"></div>
+                  </div>
+                  <div className="text-slate-700 text-justify leading-relaxed text-sm sm:text-base prose-p:mb-4 prose-headings:font-bold prose-li:mb-2" dangerouslySetInnerHTML={{__html: report.orientations}} />
                 </section>
               </div>
 
-              <div className="mt-24 pt-12 border-t border-slate-100 flex justify-end">
+              <div className="mt-32 pt-12 border-t border-slate-100 flex justify-end">
                 <div className="text-center w-64">
-                  <div className="h-20 flex items-center justify-center italic text-slate-300 text-xs mb-2">Signatura Digital / Segell</div>
+                  <div className="h-24 flex items-center justify-center italic text-slate-300 text-xs mb-2">Signatura Digital / Segell</div>
                   <hr className="border-emerald-200" />
                   <p className="mt-4 font-black text-emerald-900 text-sm">Equip d'Orientació</p>
                   <p className="text-[10px] text-slate-500 uppercase font-bold">Referent de l'Informe</p>
