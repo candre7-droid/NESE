@@ -286,7 +286,7 @@ const App: React.FC = () => {
             <i className="fas fa-lock"></i>
           </div>
           <h2 className="text-2xl font-black text-slate-800 mb-2">Accés Protegit</h2>
-          <p className="text-slate-500 text-sm mb-8">Introdueix el codi de l'EAP per començar a redactar informes.</p>
+          <p className="text-slate-500 text-sm mb-8">Introdueix el codi per començar a redactar informes.</p>
           
           <form onSubmit={handleAuth} className="space-y-4">
             <input 
@@ -337,15 +337,21 @@ const App: React.FC = () => {
         {!showChat ? (
           <button 
             onClick={() => setShowChat(true)} 
-            className="w-full h-full bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all p-3"
+            className="w-full h-full bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all p-3 overflow-hidden"
           >
-            <i className="fas fa-sparkles text-2xl"></i>
+            {/* Logotip estilitzat de Gemini (estrella de quatre puntes) */}
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
+              <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="currentColor"/>
+            </svg>
           </button>
         ) : (
           <div className="bg-white w-full h-full rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col no-print">
             <div className="p-4 bg-emerald-700 text-white flex justify-between items-center shrink-0">
               <span className="font-bold flex items-center gap-2">
-                <i className="fas fa-magic"></i> Assistent Gemini
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                  <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="white"/>
+                </svg>
+                Assistent Gemini
               </span>
               <button onClick={() => setShowChat(false)} className="hover:text-emerald-200 p-1"><i className="fas fa-times"></i></button>
             </div>
@@ -524,14 +530,14 @@ const App: React.FC = () => {
           <div className="space-y-8 animate-fadeIn">
             <div className="flex justify-between items-center no-print">
               <button onClick={() => setStep(AppStep.INPUT)} className="text-slate-500 font-bold flex items-center gap-2 hover:text-emerald-800 transition-all group">
-                <i className="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Tornar a l'edició de dades
+                <i className="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Tornar a dades
               </button>
               <button 
                 onClick={generateApartat2} 
                 disabled={loading} 
                 className="px-8 py-3 bg-emerald-700 text-white rounded-2xl font-bold hover:bg-emerald-800 transition-all flex items-center gap-3 disabled:opacity-50"
               >
-                {loading ? <><i className="fas fa-spinner fa-spin"></i> Generant Orientacions...</> : <>Generar Orientacions <i className="fas fa-arrow-right"></i></>}
+                {loading ? <><i className="fas fa-spinner fa-spin"></i> Generant Orientacions...</> : <>Següent: Orientacions <i className="fas fa-arrow-right"></i></>}
               </button>
             </div>
             
@@ -600,9 +606,6 @@ const App: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button type="button" onClick={downloadAsWord} className="px-6 py-2.5 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 transition-all flex items-center gap-2 whitespace-nowrap">
                   <i className="fas fa-file-word"></i> DESCARREGAR WORD
-                </button>
-                <button type="button" onClick={() => window.print()} className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2">
-                  <i className="fas fa-print"></i> IMPRIMIR
                 </button>
               </div>
             </div>
