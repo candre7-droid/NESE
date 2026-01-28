@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
@@ -281,11 +282,11 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center animate-fadeIn">
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-3xl flex items-center justify-center text-white text-4xl mx-auto mb-8 shadow-lg">
-            <i className="fas fa-file-medical"></i>
+          <div className="w-24 h-24 bg-emerald-700 text-white rounded-3xl flex items-center justify-center text-4xl shadow-xl shadow-emerald-700/20 mx-auto mb-8">
+            <i className="fas fa-lock"></i>
           </div>
           <h2 className="text-2xl font-black text-slate-800 mb-2">Accés Protegit</h2>
-          <p className="text-slate-500 text-sm mb-8">Introdueix el codi per començar a redactar informes.</p>
+          <p className="text-slate-500 text-sm mb-8">Introdueix el codi de l'EAP per començar a redactar informes.</p>
           
           <form onSubmit={handleAuth} className="space-y-4">
             <input 
@@ -338,18 +339,13 @@ const App: React.FC = () => {
             onClick={() => setShowChat(true)} 
             className="w-full h-full bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all p-3"
           >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-              <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="white"/>
-            </svg>
+            <i className="fas fa-sparkles text-2xl"></i>
           </button>
         ) : (
           <div className="bg-white w-full h-full rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col no-print">
             <div className="p-4 bg-emerald-700 text-white flex justify-between items-center shrink-0">
               <span className="font-bold flex items-center gap-2">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                  <path d="M12 22C12 22 12.1307 16.6322 15.0118 13.7512C17.8929 10.8701 22.2609 10.7394 22.2609 10.7394C22.2609 10.7394 17.8929 10.6087 15.0118 7.72765C12.1307 4.84659 12 0 12 0C12 0 11.8693 4.84659 8.98822 7.72765C6.10714 10.6087 1.73913 10.7394 1.73913 10.7394C1.73913 10.7394 6.10714 10.8701 8.98822 13.7512C11.8693 16.6322 12 22 12 22Z" fill="white"/>
-                </svg>
-                Assistent Gemini
+                <i className="fas fa-magic"></i> Assistent Gemini
               </span>
               <button onClick={() => setShowChat(false)} className="hover:text-emerald-200 p-1"><i className="fas fa-times"></i></button>
             </div>
@@ -415,8 +411,8 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="flex flex-col sm:flex-row items-center justify-between mb-10 no-print gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-2xl flex items-center justify-center text-white text-3xl">
-            <i className="fas fa-file-medical"></i>
+          <div className="w-16 h-16 bg-emerald-700 text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-emerald-700/20">
+            <i className="fas fa-file-signature"></i>
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Elaboració de NESE</h1>
@@ -605,24 +601,26 @@ const App: React.FC = () => {
                 <button type="button" onClick={downloadAsWord} className="px-6 py-2.5 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 transition-all flex items-center gap-2 whitespace-nowrap">
                   <i className="fas fa-file-word"></i> DESCARREGAR WORD
                 </button>
+                <button type="button" onClick={() => window.print()} className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2">
+                  <i className="fas fa-print"></i> IMPRIMIR
+                </button>
               </div>
             </div>
             
             <div ref={reportContentRef} className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden shadow-none">
-              {/* Capçalera d'institució */}
               <div className="flex justify-between items-start mb-16 border-b pb-8 border-slate-100">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-emerald-700 rounded-xl flex items-center justify-center text-white text-xl">
-                    <i className="fas fa-file-medical"></i>
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center text-3xl">
+                    <i className="fas fa-file-contract"></i>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <h1 className="text-xl font-black text-emerald-800 m-0 p-0 leading-none uppercase">EQUIP D'ORIENTACIÓ</h1>
-                    <p className="text-xs font-bold text-slate-400 m-0 uppercase tracking-widest">Generalitat de Catalunya • Departament d'Educació</p>
+                    <h1 className="text-xl font-black text-slate-800 m-0 p-0 leading-none uppercase tracking-tight">Equip d'Assessorament i Orientació</h1>
+                    <p className="text-xs font-bold text-slate-400 m-0 uppercase tracking-widest leading-tight">Generalitat de Catalunya • Departament d'Educació<br/>Serveis Territorials al Vallès Occidental</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold text-slate-700 m-0 uppercase">Informe de Reconeixement NESE</p>
-                  <p className="text-xs text-slate-400 m-0">Segons Decret 150/2017</p>
+                  <p className="text-xs font-black text-slate-800 m-0 uppercase tracking-widest">Informe de Reconeixement NESE</p>
+                  <p className="text-[10px] text-slate-400 m-0 uppercase font-bold tracking-widest">Decret d'Inclusió 150/2017</p>
                 </div>
               </div>
 
@@ -631,19 +629,19 @@ const App: React.FC = () => {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 bg-emerald-50/30 p-8 rounded-3xl border border-emerald-100 mb-10">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Alumne/a</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Alumne/a</span>
                     <span className="text-lg font-bold text-slate-800">{report.studentName || '________________________________'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Nivell Educatiu</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Nivell Educatiu</span>
                     <span className="text-lg font-bold text-slate-800">{report.schoolLevel || '________________________________'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Curs Escolar</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Curs Escolar</span>
                     <span className="text-lg font-bold text-slate-800">{report.schoolYear || '________________________________'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Data de l'Informe</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Data de l'Informe</span>
                     <span className="text-lg font-bold text-slate-800">{new Date().toLocaleDateString('ca-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   </div>
                 </div>
@@ -653,29 +651,29 @@ const App: React.FC = () => {
               <div className="space-y-12 report-content">
                 <section>
                   <div className="mb-10">
-                    <h2 className="text-2xl font-black uppercase text-emerald-900 m-0">1. Conclusions de l'Avaluació</h2>
+                    <h2 className="text-2xl font-black uppercase text-emerald-900 m-0 tracking-tight">1. Conclusions de l'Avaluació</h2>
                     <div className="w-24 h-1.5 bg-emerald-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700" dangerouslySetInnerHTML={{__html: report.conclusions}} />
+                  <div className="text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{__html: report.conclusions}} />
                 </section>
 
                 <div className="page-break my-16"></div>
 
                 <section>
                   <div className="mb-10">
-                    <h2 className="text-2xl font-black uppercase text-teal-900 m-0">2. Orientacions per a la Resposta Educativa</h2>
+                    <h2 className="text-2xl font-black uppercase text-teal-900 m-0 tracking-tight">2. Orientacions per a la Resposta Educativa</h2>
                     <div className="w-24 h-1.5 bg-teal-700 mt-2"></div>
                   </div>
-                  <div className="text-slate-700" dangerouslySetInnerHTML={{__html: report.orientations}} />
+                  <div className="text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{__html: report.orientations}} />
                 </section>
               </div>
 
               <div className="mt-32 pt-12 border-t border-slate-100 flex justify-end">
                 <div className="text-center w-64">
-                  <div className="h-24 flex items-center justify-center italic text-slate-300 text-xs mb-2">Signatura Digital / Segell</div>
+                  <div className="h-24 flex items-center justify-center italic text-slate-300 text-xs mb-2 uppercase tracking-tighter font-bold">Signatura Digital / Segell</div>
                   <hr className="border-emerald-200" />
-                  <p className="mt-4 font-black text-emerald-900 text-sm">Equip d'Orientació</p>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">Referent de l'Informe</p>
+                  <p className="mt-4 font-black text-emerald-900 text-sm">Professional de l'EAP</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Referent de l'Informe</p>
                 </div>
               </div>
             </div>
@@ -684,8 +682,8 @@ const App: React.FC = () => {
       </main>
       
       <footer className="mt-20 py-8 border-t border-slate-200 text-center no-print">
-        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest flex items-center justify-center gap-2">
-          Eina Professional de Suport a l'Avaluació
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+          Eina Professional per l'Avaluació Psicopedagògica • NESE
         </p>
       </footer>
     </div>
