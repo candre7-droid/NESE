@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
@@ -7,7 +6,16 @@ import { fileService } from './services/fileService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
+// CODI D'ACCÉS PER PROTEGIR L'APLICACIÓ
+const ACCESS_CODE = 'EAP50'; 
+
 const App: React.FC = () => {
+  const [authorized, setAuthorized] = useState<boolean>(() => {
+    return sessionStorage.getItem('nese_auth') === 'true';
+  });
+  const [passInput, setPassInput] = useState('');
+  const [authError, setAuthError] = useState(false);
+
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
   const [loading, setLoading] = useState(false);
   const [fileProcessing, setFileProcessing] = useState(false);
@@ -36,6 +44,7 @@ const App: React.FC = () => {
   const [report, setReport] = useState<ReportData>(initialReportState);
 
   useEffect(() => {
+    if (!authorized) return;
     const history = localStorage.getItem('nese_reports_history');
     if (history) {
       try {
@@ -44,11 +53,22 @@ const App: React.FC = () => {
         console.error("Error carregant historial", e);
       }
     }
-  }, []);
+  }, [authorized]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passInput.trim().toUpperCase() === ACCESS_CODE) {
+      setAuthorized(true);
+      sessionStorage.setItem('nese_auth', 'true');
+    } else {
+      setAuthError(true);
+      setTimeout(() => setAuthError(false), 2000);
+    }
+  };
 
   const saveToLocalStorage = (reports: ReportData[]) => {
     try {
@@ -256,6 +276,44 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // PANTALLA DE BLOQUEIG
+  if (!authorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center animate-fadeIn">
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-3xl flex items-center justify-center text-white text-4xl mx-auto mb-8 shadow-lg">
+            <i className="fas fa-file-medical"></i>
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">Accés Protegit</h2>
+          <p className="text-slate-500 text-sm mb-8">Introdueix el codi per començar a redactar informes.</p>
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            <input 
+              type="password" 
+              value={passInput} 
+              onChange={e => setPassInput(e.target.value)} 
+              className={`w-full p-4 bg-slate-100 border-2 rounded-2xl outline-none text-center font-bold tracking-[0.5em] focus:ring-4 focus:ring-emerald-50 transition-all ${authError ? 'border-red-400 shake' : 'border-transparent focus:border-emerald-600'}`}
+              placeholder="••••••"
+              autoFocus
+            />
+            <button type="submit" className="w-full py-4 bg-emerald-700 text-white rounded-2xl font-black hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-700/20 uppercase tracking-widest">
+              Entrar
+            </button>
+          </form>
+          {authError && <p className="mt-4 text-red-500 text-xs font-bold uppercase animate-pulse">Codi incorrecte</p>}
+        </div>
+        <style>{`
+          .shake { animation: shake 0.4s ease-in-out; }
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto pb-24">
       <style>{`
@@ -357,7 +415,9 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="flex flex-col sm:flex-row items-center justify-between mb-10 no-print gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-2xl flex items-center justify-center text-white text-3xl"><i className="fas fa-file-medical"></i></div>
+          <div className="w-14 h-14 bg-gradient-to-br from-emerald-700 to-teal-800 rounded-2xl flex items-center justify-center text-white text-3xl">
+            <i className="fas fa-file-medical"></i>
+          </div>
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Elaboració de NESE</h1>
             <p className="text-emerald-700 font-medium">Assistent per la redacció d'informes</p>
@@ -551,9 +611,14 @@ const App: React.FC = () => {
             <div ref={reportContentRef} className="bg-white p-12 sm:p-20 border report-container rounded-none sm:rounded-[3rem] prose prose-slate max-w-none relative overflow-hidden shadow-none">
               {/* Capçalera d'institució */}
               <div className="flex justify-between items-start mb-16 border-b pb-8 border-slate-100">
-                <div className="flex flex-col gap-1">
-                  <h1 className="text-2xl font-black text-emerald-800 m-0 p-0 leading-none uppercase">EQUIP D'ORIENTACIÓ</h1>
-                  <p className="text-xs font-bold text-slate-400 m-0 uppercase tracking-widest">Generalitat de Catalunya • Departament d'Educació</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-700 rounded-xl flex items-center justify-center text-white text-xl">
+                    <i className="fas fa-file-medical"></i>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <h1 className="text-xl font-black text-emerald-800 m-0 p-0 leading-none uppercase">EQUIP D'ORIENTACIÓ</h1>
+                    <p className="text-xs font-bold text-slate-400 m-0 uppercase tracking-widest">Generalitat de Catalunya • Departament d'Educació</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-slate-700 m-0 uppercase">Informe de Reconeixement NESE</p>
@@ -620,7 +685,7 @@ const App: React.FC = () => {
       
       <footer className="mt-20 py-8 border-t border-slate-200 text-center no-print">
         <p className="text-slate-400 text-xs font-medium uppercase tracking-widest flex items-center justify-center gap-2">
-          Eina Professional de Suport a l'Avaluació <i className="fas fa-leaf text-emerald-600"></i> NESE AI 2024
+          Eina Professional de Suport a l'Avaluació
         </p>
       </footer>
     </div>
