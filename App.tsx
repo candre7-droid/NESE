@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   
   const reportContentRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -87,16 +88,32 @@ const App: React.FC = () => {
 
     setFileProcessing(true);
     setError(null);
+    setOcrStatus(null);
+    
     try {
-      const text = await fileService.extractText(file);
+      const extracted = await fileService.extractText(file);
+      let textToAppend = extracted.text;
+
+      if (extracted.isScan && extracted.images && extracted.images.length > 0) {
+        setOcrStatus("Detectat PDF escanejat. Realitzant anàlisi visual amb IA...");
+        try {
+          const aiText = await geminiService.visionExtractText(extracted.images);
+          textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
+        } catch (visionErr) {
+          console.error("Error en visió:", visionErr);
+          setError("S'ha detectat un PDF escanejat però la IA de visió ha fallat. Es carregarà només el text parcial trobat.");
+        }
+      }
+
       setReport(prev => ({ 
         ...prev, 
-        rawInput: prev.rawInput + (prev.rawInput ? '\n\n' : '') + `[Contingut de ${file.name}]:\n` + text 
+        rawInput: prev.rawInput + (prev.rawInput ? '\n\n' : '') + `[Contingut de ${file.name}]:\n` + textToAppend 
       }));
     } catch (err: any) {
       setError(`Error en el fitxer: ${err.message || 'Error desconegut'}`);
     } finally {
       setFileProcessing(false);
+      setOcrStatus(null);
       if (e.target) e.target.value = '';
     }
   };
@@ -445,6 +462,15 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {ocrStatus && (
+          <div className="mb-8 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-xl flex justify-between items-center animate-fadeIn no-print">
+            <div className="flex gap-3 items-center">
+              <i className="fas fa-sparkles animate-pulse"></i>
+              <p className="font-bold text-sm">{ocrStatus}</p>
+            </div>
+          </div>
+        )}
+
         {/* STEP 1: INPUT */}
         {step === AppStep.INPUT && (
           <div className="space-y-8 animate-fadeIn">
@@ -499,7 +525,7 @@ const App: React.FC = () => {
                 <div className="flex gap-2">
                   <label className="cursor-pointer px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all flex items-center gap-2">
                     <i className="fas fa-cloud-upload-alt"></i>
-                    {fileProcessing ? 'Llegint...' : 'Adjuntar Document'}
+                    {fileProcessing ? 'Processant...' : 'Adjuntar Document'}
                     <input type="file" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
                   </label>
                 </div>

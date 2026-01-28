@@ -1,10 +1,16 @@
+
 declare const pdfjsLib: any;
 declare const mammoth: any;
 declare const XLSX: any;
 
+export interface ExtractedContent {
+  text: string;
+  isScan: boolean;
+  images?: string[];
+}
+
 export class FileService {
   constructor() {
-    // Configuració del worker de PDF.js de forma segura
     if (typeof window !== 'undefined') {
       const checkPdfJs = setInterval(() => {
         if ((window as any).pdfjsLib) {
@@ -12,13 +18,11 @@ export class FileService {
           clearInterval(checkPdfJs);
         }
       }, 500);
-      
-      // Stop checking after 10 seconds to avoid infinite loop
       setTimeout(() => clearInterval(checkPdfJs), 10000);
     }
   }
 
-  async extractText(file: File): Promise<string> {
+  async extractText(file: File): Promise<ExtractedContent> {
     const extension = file.name.split('.').pop()?.toLowerCase();
 
     try {
@@ -26,12 +30,15 @@ export class FileService {
         case 'pdf':
           return await this.extractFromPdf(file);
         case 'docx':
-          return await this.extractFromDocx(file);
+          const docxText = await this.extractFromDocx(file);
+          return { text: docxText, isScan: false };
         case 'xlsx':
         case 'xls':
-          return await this.extractFromExcel(file);
+          const excelText = await this.extractFromExcel(file);
+          return { text: excelText, isScan: false };
         case 'txt':
-          return await file.text();
+          const txt = await file.text();
+          return { text: txt, isScan: false };
         default:
           throw new Error('Format de fitxer no suportat.');
       }
@@ -41,21 +48,52 @@ export class FileService {
     }
   }
 
-  private async extractFromPdf(file: File): Promise<string> {
+  private async extractFromPdf(file: File): Promise<ExtractedContent> {
     if (!(window as any).pdfjsLib) throw new Error("La llibreria PDF.js no s'ha carregat correctament.");
     
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
     
+    // Extracció de text estàndard
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      fullText += `--- Pàgina ${i} ---\n${pageText}\n\n`;
+      if (pageText.trim()) {
+        fullText += `--- Pàgina ${i} ---\n${pageText}\n\n`;
+      }
     }
     
-    return fullText;
+    // Si hem extret molt poc text (< 50 caràcters per pàgina de mitjana), probablement és un escaneig
+    const threshold = pdf.numPages * 50;
+    if (fullText.trim().length < threshold) {
+      console.log("PDF detectat com a possible escaneig. Renderitzant pàgines a imatges per OCR...");
+      
+      const images: string[] = [];
+      // Limitem a les primeres 5 pàgines per evitar latència i costos excessius en aquesta demo
+      const pagesToProcess = Math.min(pdf.numPages, 5);
+      
+      for (let i = 1; i <= pagesToProcess; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2.0 }); // Escala alta per a millor OCR
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        images.push(canvas.toDataURL('image/jpeg', 0.8));
+      }
+
+      return {
+        text: fullText,
+        isScan: true,
+        images: images
+      };
+    }
+    
+    return { text: fullText, isScan: false };
   }
 
   private async extractFromDocx(file: File): Promise<string> {

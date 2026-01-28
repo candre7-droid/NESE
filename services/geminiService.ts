@@ -85,6 +85,33 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     }
   }
 
+  async visionExtractText(imagesBase64: string[]): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Creem els part d'imatge per a Gemini
+    const imageParts = imagesBase64.map(base64 => ({
+      inlineData: {
+        data: base64.split(',')[1], // Eliminem el prefix data:image/jpeg;base64,
+        mimeType: 'image/jpeg'
+      }
+    }));
+
+    const prompt = "Ets un expert en transcripció de documents psicopedagògics. Transcriu el text d'aquestes imatges de forma fidel, mantenint l'estructura i ignorant taques o elements no textuals. Si hi ha diverses pàgines, separa-les amb '--- Pàgina X ---'.";
+
+    try {
+      return await this.withRetry(async () => {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: { parts: [...imageParts, { text: prompt }] },
+        });
+        return response.text || "";
+      });
+    } catch (err: any) {
+      console.error("Error en visió Gemini:", err);
+      throw new Error("No s'ha pogut realitzar l'extracció visual (OCR) amb IA.");
+    }
+  }
+
   async refineText(text: string, instruction: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = `TEXT ACTUAL:\n${text}\n\nINSTRUCCIÓ DE REFINAMENT:\n${instruction}`;
@@ -104,27 +131,6 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     } catch (err) {
       console.error("Error refinant text:", err);
       return text;
-    }
-  }
-
-  async analyzeNotes(notes: string): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Analitza aquestes notes d'avaluació i extreu-ne els punts clau, dificultats principals i potencialitats de l'alumne de forma esquemàtica:\n\n${notes}`;
-
-    try {
-      return await this.withRetry(async () => {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: prompt,
-          config: {
-            systemInstruction: "Ets un expert en síntesi d'informació psicopedagògica. Sigues molt concís.",
-            temperature: 0.3,
-          },
-        });
-        return response.text || "No s'ha pogut analitzar.";
-      });
-    } catch (err) {
-      return "Error en l'anàlisi.";
     }
   }
 
