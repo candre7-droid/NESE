@@ -241,6 +241,7 @@ const App: React.FC = () => {
           p { margin-bottom: 20px; text-align: justify; line-height: 1.5; }
           ul { margin-bottom: 20px; padding-left: 20px; }
           li { margin-bottom: 12px; line-height: 1.5; }
+          .intro-text { margin-bottom: 30px; text-align: justify; color: #4b5563; }
           .data-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; background-color: #f0fdf4; }
           .data-table td { padding: 15px; border: 1px solid #d1fae5; }
           .label { font-weight: bold; color: #065f46; font-size: 10pt; text-transform: uppercase; }
@@ -253,6 +254,8 @@ const App: React.FC = () => {
 
     const footer = "</body></html>";
     
+    const introParagraph = `<p class="intro-text">En l'avaluació psicopedagògica de <strong>${report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>`;
+
     const content = `
       <h1>Informe Psicopedagògic</h1>
       <table class="data-table">
@@ -265,6 +268,8 @@ const App: React.FC = () => {
           <td><span class="label">Data:</span><br/><span class="value">${new Date().toLocaleDateString('ca-ES')}</span></td>
         </tr>
       </table>
+
+      ${introParagraph}
 
       <div class="section-break">
         <h2>1. Conclusions de l'Avaluació</h2>
@@ -341,6 +346,7 @@ const App: React.FC = () => {
         .report-content ul { list-style-type: none !important; padding-left: 0.5rem !important; margin-left: 0 !important; margin-bottom: 1.5rem !important; }
         .report-content li { margin-bottom: 0.75rem !important; line-height: 1.5 !important; }
         .report-content section { margin-bottom: 4rem !important; }
+        .report-intro { margin-bottom: 2.5rem; color: #475569; line-height: 1.6; text-align: justify; }
         
         @media print {
           .no-print { display: none !important; }
@@ -462,15 +468,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {ocrStatus && (
-          <div className="mb-8 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-xl flex justify-between items-center animate-fadeIn no-print">
-            <div className="flex gap-3 items-center">
-              <i className="fas fa-sparkles animate-pulse"></i>
-              <p className="font-bold text-sm">{ocrStatus}</p>
-            </div>
-          </div>
-        )}
-
         {/* STEP 1: INPUT */}
         {step === AppStep.INPUT && (
           <div className="space-y-8 animate-fadeIn">
@@ -515,6 +512,16 @@ const App: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Avisos de processament OCR reubicats aquí */}
+            {ocrStatus && (
+              <div className="p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-xl flex justify-between items-center animate-fadeIn no-print">
+                <div className="flex gap-3 items-center">
+                  <i className="fas fa-sparkles animate-pulse"></i>
+                  <p className="font-bold text-sm">{ocrStatus}</p>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white p-8 rounded-3xl border border-slate-100">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -678,6 +685,8 @@ const App: React.FC = () => {
 
               {/* CONTINGUT DE L'INFORME */}
               <div className="space-y-12 report-content">
+                <p className="report-intro">En l'avaluació psicopedagògica de <strong>{report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>
+
                 <section>
                   <div className="mb-10">
                     <h2 className="text-2xl font-black uppercase text-emerald-900 m-0 tracking-tight">1. Conclusions de l'Avaluació</h2>
