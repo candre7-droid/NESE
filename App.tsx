@@ -101,7 +101,7 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr) {
           console.error("Error en visió:", visionErr);
-          setError("S'ha detectat un PDF escanejat però la IA de visió ha fallat. Es carregarà només el text parcial trobat.");
+          setError("S'ha detectat un PDF escanejat per la IA de visió però ha fallat. Es carregarà només el text parcial trobat.");
         }
       }
 
@@ -254,7 +254,7 @@ const App: React.FC = () => {
 
     const footer = "</body></html>";
     
-    const introParagraph = `<p class="intro-text">En l'avaluació psicopedagògica de <strong>${report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>`;
+    const introParagraph = `<p class="intro-text">En l'avaluació psicopedagògica de <strong>${report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tener presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>`;
 
     const content = `
       <h1>Informe Psicopedagògic</h1>
@@ -379,10 +379,10 @@ const App: React.FC = () => {
               <button onClick={() => setShowChat(false)} className="hover:text-emerald-200 p-1"><i className="fas fa-times"></i></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
-              {chatMessages.length === 0 && <p className="text-xs text-slate-400 text-center mt-10 italic">Pregunta sobre dades de l'alumne o dubtes sobre el Decret 150/2017.</p>}
+              {chatMessages.length === 0 && <p className="text-[11px] text-slate-400 text-center mt-10 italic">Pregunta sobre dades de l'alumne o dubtes sobre el Decret 150/2017.</p>}
               {chatMessages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-3 rounded-2xl text-xs ${m.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] ${m.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'}`}>
                     {m.content}
                   </div>
                 </div>
@@ -404,7 +404,7 @@ const App: React.FC = () => {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Escriu..." 
-                className="flex-1 text-xs p-2 outline-none bg-slate-50 rounded-lg focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 text-[11px] p-2 outline-none bg-slate-50 rounded-lg focus:ring-1 focus:ring-emerald-500"
               />
               <button onClick={handleSendMessage} disabled={isChatLoading} className="p-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 transition-colors"><i className="fas fa-paper-plane"></i></button>
             </div>
@@ -492,7 +492,7 @@ const App: React.FC = () => {
             <div className="bg-white p-8 rounded-3xl border border-slate-100">
               <h2 className="text-xl font-bold mb-6 flex items-center gap-3 text-slate-800">
                 <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm">1</span>
-                Selecció de Blocs NESE
+                Selecció de blocs NESE
               </h2>
               <div className="grid grid-cols-1 gap-3">
                 {BLOCK_OPTIONS.map(block => (
@@ -527,12 +527,12 @@ const App: React.FC = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h2 className="text-xl font-bold flex items-center gap-3 text-slate-800">
                   <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm">2</span>
-                  Observacions i Dades de l'Avaluació
+                  Observacions i dades de l'avaluació
                 </h2>
                 <div className="flex gap-2">
                   <label className="cursor-pointer px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all flex items-center gap-2">
                     <i className="fas fa-cloud-upload-alt"></i>
-                    {fileProcessing ? 'Processant...' : 'Adjuntar Document'}
+                    {fileProcessing ? 'Processant...' : 'Adjuntar document'}
                     <input type="file" onChange={handleFileUpload} disabled={fileProcessing} className="hidden" />
                   </label>
                 </div>
@@ -605,7 +605,7 @@ const App: React.FC = () => {
                 <i className="fas fa-arrow-left"></i> Editar Conclusions
               </button>
               <button 
-                onClick={() => setStep(AppStep.FINALIZE)} 
+                onClick={step === AppStep.ORIENTATIONS ? () => setStep(AppStep.FINALIZE) : undefined} 
                 className="px-8 py-3 bg-green-700 text-white rounded-2xl font-bold hover:bg-green-800 transition-all flex items-center gap-3"
               >
                 Vista Prèvia Final <i className="fas fa-check-circle"></i>
@@ -685,7 +685,7 @@ const App: React.FC = () => {
 
               {/* CONTINGUT DE L'INFORME */}
               <div className="space-y-12 report-content">
-                <p className="report-intro">En l'avaluació psicopedagògica de <strong>{report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>
+                <p className="report-intro">En l'avaluació psicopedagògica de <strong>{report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tener presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>
 
                 <section>
                   <div className="mb-10">
@@ -720,9 +720,10 @@ const App: React.FC = () => {
       </main>
       
       <footer className="mt-20 py-8 border-t border-slate-200 text-center no-print">
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-          Eina Professional per l'Avaluació Psicopedagògica • NESE
-        </p>
+        <div className="text-slate-400 text-xs font-bold flex flex-col items-center justify-center gap-2">
+          <span className="uppercase tracking-[0.2em]">Eina Professional per l'Avaluació Psicopedagògica • NESE</span>
+          <span className="tracking-widest font-normal">Dissenyat i creat pel Servei Educatiu Vallès Occidental VIII © 2026</span>
+        </div>
       </footer>
     </div>
   );
