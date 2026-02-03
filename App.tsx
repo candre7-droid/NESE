@@ -254,7 +254,7 @@ const App: React.FC = () => {
 
     const footer = "</body></html>";
     
-    const introParagraph = `<p class="intro-text">En l'avaluació psicopedagògica de <strong>${report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tener presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>`;
+    const introParagraph = `<p class="intro-text">En l'avaluació psicopedagògica de <strong>${report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>`;
 
     const content = `
       <h1>Informe Psicopedagògic</h1>
@@ -685,7 +685,7 @@ const App: React.FC = () => {
 
               {/* CONTINGUT DE L'INFORME */}
               <div className="space-y-12 report-content">
-                <p className="report-intro">En l'avaluació psicopedagògica de <strong>{report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tener presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>
+                <p className="report-intro">En l'avaluació psicopedagògica de <strong>{report.studentName || 'l\'alumne/a'}</strong> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:</p>
 
                 <section>
                   <div className="mb-10">
