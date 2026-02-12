@@ -6,7 +6,13 @@ import { fileService } from './services/fileService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
-// Icona de Gemini en SVG per a una aparença oficial
+// Fix: Use any to avoid type conflict with existing AIStudio definition if present
+declare global {
+  interface Window {
+    aistudio?: any;
+  }
+}
+
 const GeminiIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
     <path d="M12 3C12 3 12 9 18 12C12 15 12 21 12 21C12 21 12 15 6 12C12 9 12 3 12 3Z" />
@@ -14,13 +20,13 @@ const GeminiIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-// CODI D'ACCÉS PER PROTEGIR L'APLICACIÓ
 const ACCESS_CODE = 'EAP50'; 
 
 const App: React.FC = () => {
   const [authorized, setAuthorized] = useState<boolean>(() => {
     return sessionStorage.getItem('nese_auth') === 'true';
   });
+  const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [passInput, setPassInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
@@ -53,6 +59,22 @@ const App: React.FC = () => {
   const [report, setReport] = useState<ReportData>(initialReportState);
 
   useEffect(() => {
+    const checkApiKey = async () => {
+      // Si estem en un entorn que requereix selecció de clau (com AI Studio/Vercel amb models Pro)
+      if (window.aistudio) {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        if (!selected && !process.env.API_KEY) {
+          setHasApiKey(false);
+        }
+      } else if (!process.env.API_KEY) {
+        // Si no hi ha clau ni mecanisme de selecció, avisem
+        console.warn("No s'ha detectat cap clau d'API a process.env.API_KEY");
+      }
+    };
+    checkApiKey();
+  }, []);
+
+  useEffect(() => {
     if (!authorized) return;
     const history = localStorage.getItem('nese_reports_history');
     if (history) {
@@ -67,6 +89,13 @@ const App: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, showChat]);
+
+  const handleOpenKeySelector = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      setHasApiKey(true); // Mitiguem race condition
+    }
+  };
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +118,16 @@ const App: React.FC = () => {
     }
   };
 
+  // Fix: Added missing toggleBlock function
+  const toggleBlock = (id: number) => {
+    setReport(prev => {
+      const selectedBlocks = prev.selectedBlocks.includes(id)
+        ? prev.selectedBlocks.filter(b => b !== id)
+        : [...prev.selectedBlocks, id];
+      return { ...prev, selectedBlocks };
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -108,7 +147,7 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr: any) {
           console.error("Error en visió:", visionErr);
-          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat.");
+          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API.");
         }
       }
 
@@ -123,15 +162,6 @@ const App: React.FC = () => {
       setOcrStatus(null);
       if (e.target) e.target.value = '';
     }
-  };
-
-  const toggleBlock = (id: number) => {
-    setReport(prev => ({
-      ...prev,
-      selectedBlocks: prev.selectedBlocks.includes(id)
-        ? prev.selectedBlocks.filter(b => b !== id)
-        : [...prev.selectedBlocks, id]
-    }));
   };
 
   const generateApartat1 = async () => {
@@ -151,17 +181,18 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`${err.message}`);
+      if (err.message?.includes('API Key')) {
+        setHasApiKey(false);
+        setError("Cal configurar una clau d'API vàlida per utilitzar la IA.");
+      } else {
+        setError(`${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const generateApartat2 = async () => {
-    if (!report.conclusions || report.conclusions.trim().length < 20) {
-      setError("Cal que hi hagi contingut a l'apartat de conclusions per poder generar les orientacions.");
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -191,7 +222,7 @@ const App: React.FC = () => {
       const response = await geminiService.askAssistant(msg, report.rawInput, history);
       setChatMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: 'model', content: "Ho sento, s'ha produït un error." }]);
+      setChatMessages(prev => [...prev, { role: 'model', content: "Error de connexió. Revisa la teva clau d'API." }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -220,12 +251,6 @@ const App: React.FC = () => {
     }
   };
 
-  const loadFromHistory = (h: ReportData) => {
-    setReport(h);
-    setStep(h.currentStep || AppStep.INPUT);
-    setShowHistory(false);
-  };
-
   if (!authorized) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -240,17 +265,15 @@ const App: React.FC = () => {
             </p>
           </div>
           <form onSubmit={handleAuth} className="w-full space-y-4">
-            <div className="max-w-[240px] mx-auto">
-              <input
-                type="password"
-                placeholder="Codi"
-                value={passInput}
-                onChange={(e) => setPassInput(e.target.value)}
-                className={`w-full p-3 bg-slate-50 border ${authError ? 'border-red-500 bg-red-50' : 'border-slate-200'} rounded-2xl outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-center font-bold tracking-widest text-base`}
-                autoFocus
-              />
-              {authError && <p className="text-red-500 text-[10px] text-center mt-2 font-black uppercase tracking-widest animate-pulse">Codi incorrecte</p>}
-            </div>
+            <input
+              type="password"
+              placeholder="Codi"
+              value={passInput}
+              onChange={(e) => setPassInput(e.target.value)}
+              className={`w-full p-3 bg-slate-50 border ${authError ? 'border-red-500 bg-red-50' : 'border-slate-200'} rounded-2xl outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-center font-bold tracking-widest text-base`}
+              autoFocus
+            />
+            {authError && <p className="text-red-500 text-[10px] text-center mt-2 font-black uppercase tracking-widest animate-pulse">Codi incorrecte</p>}
             <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs">
               ENTRAR
             </button>
@@ -258,6 +281,37 @@ const App: React.FC = () => {
           <div className="mt-6 pt-4 border-t border-slate-50 w-full text-center">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Equip d'Assessorament Psicopedagògic</span>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Pantalla de configuració de clau si no es detecta
+  if (!hasApiKey && window.aistudio) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl border border-emerald-100 text-center">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-inner">
+            <i className="fas fa-key"></i>
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-4">Configuració de Clau</h2>
+          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+            Cal seleccionar una clau d'API d'un projecte GCP amb facturació per utilitzar les funcionalitats d'IA.
+          </p>
+          <button
+            onClick={handleOpenKeySelector}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs mb-4"
+          >
+            CONFIGURAR CLAU API
+          </button>
+          <a 
+            href="https://ai.google.dev/gemini-api/docs/billing" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[10px] font-bold text-emerald-600 hover:underline uppercase tracking-widest"
+          >
+            Documentació sobre facturació
+          </a>
         </div>
       </div>
     );
