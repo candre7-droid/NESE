@@ -20,7 +20,6 @@ const App: React.FC = () => {
   const [authorized, setAuthorized] = useState<boolean>(() => {
     return sessionStorage.getItem('nese_auth') === 'true';
   });
-  const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [passInput, setPassInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
@@ -52,26 +51,6 @@ const App: React.FC = () => {
 
   const [report, setReport] = useState<ReportData>(initialReportState);
 
-  // Removed explicit declare global block to fix "Duplicate identifier" errors
-  // Standardizing on assuming window.aistudio is provided by the execution environment.
-
-  useEffect(() => {
-    const checkApiKey = async () => {
-      // Check for AIStudio key selection as per guidelines
-      // @ts-ignore - Assuming aistudio is globally defined in the runtime context
-      if (window.aistudio) {
-        // @ts-ignore
-        const selected = await window.aistudio.hasSelectedApiKey();
-        if (!selected && !process.env.API_KEY) {
-          setHasApiKey(false);
-        }
-      } else if (!process.env.API_KEY) {
-        console.warn("No s'ha detectat cap clau d'API a process.env.API_KEY");
-      }
-    };
-    checkApiKey();
-  }, []);
-
   useEffect(() => {
     if (!authorized) return;
     const history = localStorage.getItem('nese_reports_history');
@@ -87,16 +66,6 @@ const App: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, showChat]);
-
-  const handleOpenKeySelector = async () => {
-    // @ts-ignore
-    if (window.aistudio) {
-      // @ts-ignore
-      await window.aistudio.openSelectKey();
-      // Assume success to avoid race conditions per guidelines
-      setHasApiKey(true);
-    }
-  };
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,14 +116,7 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr: any) {
           console.error("Error en visió:", visionErr);
-          // Handle specific key errors during vision extraction
-          if (visionErr.message?.includes('Requested entity was not found')) {
-            setHasApiKey(false);
-            setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
-            handleOpenKeySelector();
-          } else {
-            setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API.");
-          }
+          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API a Vercel.");
         }
       }
 
@@ -188,17 +150,7 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      // Handle key reset as per guidelines
-      if (err.message?.includes('Requested entity was not found')) {
-        setHasApiKey(false);
-        setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
-        handleOpenKeySelector();
-      } else if (err.message?.includes('API Key')) {
-        setHasApiKey(false);
-        setError("Cal configurar una clau d'API vàlida per utilitzar la IA.");
-      } else {
-        setError(`${err.message}`);
-      }
+      setError(`Error de la IA: ${err.message || 'No s\'ha pogut generar el text. Revisa la configuració de la clau d\'API.'}`);
     } finally {
       setLoading(false);
     }
@@ -213,13 +165,7 @@ const App: React.FC = () => {
       setStep(AppStep.ORIENTATIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      if (err.message?.includes('Requested entity was not found')) {
-        setHasApiKey(false);
-        setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
-        handleOpenKeySelector();
-      } else {
-        setError(`${err.message}`);
-      }
+      setError(`Error de la IA: ${err.message || 'Error en generar orientacions.'}`);
     } finally {
       setLoading(false);
     }
@@ -240,13 +186,7 @@ const App: React.FC = () => {
       const response = await geminiService.askAssistant(msg, report.rawInput, history);
       setChatMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (err: any) {
-      if (err.message?.includes('Requested entity was not found')) {
-        setHasApiKey(false);
-        setChatMessages(prev => [...prev, { role: 'model', content: "Error en la selecció de la clau. Si us plau, torna-la a seleccionar." }]);
-        handleOpenKeySelector();
-      } else {
-        setChatMessages(prev => [...prev, { role: 'model', content: "Error de connexió. Revisa la teva clau d'API." }]);
-      }
+      setChatMessages(prev => [...prev, { role: 'model', content: "Ho sento, no he pogut connectar amb el servei d'intel·ligència artificial." }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -305,37 +245,6 @@ const App: React.FC = () => {
           <div className="mt-6 pt-4 border-t border-slate-50 w-full text-center">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Equip d'Assessorament Psicopedagògic</span>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // @ts-ignore
-  if (!hasApiKey && window.aistudio) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl border border-emerald-100 text-center">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-inner">
-            <i className="fas fa-key"></i>
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-4">Configuració de Clau</h2>
-          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-            Cal seleccionar una clau d'API d'un projecte GCP amb facturació per utilitzar les funcionalitats d'IA.
-          </p>
-          <button
-            onClick={handleOpenKeySelector}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs mb-4"
-          >
-            CONFIGURAR CLAU API
-          </button>
-          <a 
-            href="https://ai.google.dev/gemini-api/docs/billing" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-[10px] font-bold text-emerald-600 hover:underline uppercase tracking-widest"
-          >
-            Documentació sobre facturació
-          </a>
         </div>
       </div>
     );
