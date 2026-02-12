@@ -13,8 +13,10 @@ export class FileService {
   constructor() {
     if (typeof window !== 'undefined') {
       const checkPdfJs = setInterval(() => {
-        if ((window as any).pdfjsLib) {
-          (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        // En versions modernes (4.x), pdfjsLib pot trigar un moment a ser global si es carrega com a mòdul
+        const lib = (window as any).pdfjsLib;
+        if (lib) {
+          lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
           clearInterval(checkPdfJs);
         }
       }, 500);
@@ -49,10 +51,11 @@ export class FileService {
   }
 
   private async extractFromPdf(file: File): Promise<ExtractedContent> {
-    if (!(window as any).pdfjsLib) throw new Error("La llibreria PDF.js no s'ha carregat correctament.");
+    const lib = (window as any).pdfjsLib;
+    if (!lib) throw new Error("La llibreria PDF.js no s'ha carregat correctament.");
     
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
     
     // Extracció de text estàndard
@@ -65,25 +68,23 @@ export class FileService {
       }
     }
     
-    // Si hem extret molt poc text (< 50 caràcters per pàgina de mitjana), probablement és un escaneig
+    // Llindar per detectar escanejos
     const threshold = pdf.numPages * 50;
     if (fullText.trim().length < threshold) {
-      console.log("PDF detectat com a possible escaneig. Renderitzant pàgines a imatges per OCR...");
-      
       const images: string[] = [];
-      // Limitem a les primeres 5 pàgines per evitar latència i costos excessius en aquesta demo
       const pagesToProcess = Math.min(pdf.numPages, 5);
       
       for (let i = 1; i <= pagesToProcess; i++) {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2.0 }); // Escala alta per a millor OCR
+        const viewport = page.getViewport({ scale: 2.0 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-        images.push(canvas.toDataURL('image/jpeg', 0.8));
+        if (context) {
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          images.push(canvas.toDataURL('image/jpeg', 0.8));
+        }
       }
 
       return {
