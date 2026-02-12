@@ -499,6 +499,10 @@ const App: React.FC = () => {
               </div>
 
               <div className="space-y-20">
+                <div className="text-slate-700 text-lg leading-relaxed">
+                  En l'avaluació psicopedagògica de <span className="font-bold">{report.studentName || 'l\'alumne/a'}</span> observem diferents aspectes a tenir presents per oferir una resposta educativa davant d'unes necessitats específiques relacionades amb els següents àmbits:
+                </div>
+
                 <section>
                   <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-8">1. Conclusions de l'avaluació</h2>
                   <div className="prose prose-slate max-w-none text-justify" dangerouslySetInnerHTML={{ __html: report.conclusions }} />
