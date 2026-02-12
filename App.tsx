@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
@@ -504,13 +503,13 @@ const App: React.FC = () => {
 
       <div className="fixed bottom-6 right-6 z-50 no-print">
         {showChat ? (
-          <div className="bg-white w-80 md:w-96 h-[550px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
+          <div className="bg-white w-[90vw] md:w-2/3 h-[360px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
             <div className="bg-slate-800 p-5 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
                   <GeminiIcon className="w-5 h-5" />
                 </div>
-                <p className="font-black text-sm uppercase tracking-tighter">Elaboració NESE</p>
+                <p className="font-black text-sm uppercase tracking-tighter">Assistent de redacció NESE</p>
               </div>
               <button onClick={() => setShowChat(false)} className="hover:bg-slate-700 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
                 <i className="fas fa-times text-sm"></i>
