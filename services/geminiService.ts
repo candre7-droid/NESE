@@ -48,7 +48,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
         // ALWAYS create a new instance right before the call to ensure the latest API key is used
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'models/gemini-1.5-flash',
           contents: prompt,
           config: {
             systemInstruction: SYSTEM_PROMPT_PART_1,
@@ -77,7 +77,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
       return await this.withRetry(async () => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'models/gemini-1.5-flash',
           contents: prompt,
           config: {
             systemInstruction: SYSTEM_PROMPT_PART_2,
@@ -122,7 +122,7 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
       return await this.withRetry(async () => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'models/gemini-1.5-flash',
           contents: { parts: [...imageParts, { text: prompt }] },
         });
         return response.text || "";
@@ -143,7 +143,7 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
       return await this.withRetry(async () => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'models/gemini-1.5-flash',
           contents: prompt,
           config: {
             systemInstruction: SYSTEM_PROMPT_REFINEMENT,
@@ -166,7 +166,7 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
       return await this.withRetry(async () => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'models/gemini-1.5-flash',
           contents: [
             ...history,
             { role: 'user', parts: [{ text: `CONTEXT ACTUAL (Notes de l'alumne):\n${context}\n\nPREGUNTA DE L'USUARI: ${message}` }] }
