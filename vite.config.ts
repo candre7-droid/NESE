@@ -3,8 +3,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   define: {
-    // Utilitzem una cadena buida com a fallback per evitar errors de compilació
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ""),
+    // Aquesta definició és crucial per a Vercel. 
+    // Vite substituirà process.env.API_KEY pel valor real durant el build.
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "")
   },
   build: {
     chunkSizeWarningLimit: 2000,

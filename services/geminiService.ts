@@ -3,6 +3,9 @@ import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_PROMPT_PART_1, SYSTEM_PROMPT_PART_2, SYSTEM_PROMPT_REFINEMENT, SYSTEM_PROMPT_ASSISTANT } from "../constants";
 
 export class GeminiService {
+  /**
+   * Helper to handle retries for 503 and 429 status codes.
+   */
   private async withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 1000): Promise<T> {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
@@ -24,8 +27,10 @@ export class GeminiService {
     throw lastError;
   }
 
+  /**
+   * Generates psychological evaluation conclusions.
+   */
   async generateConclusions(input: string, selectedBlocks: number[], level?: string): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const blocksText = selectedBlocks.join(", ");
     const levelContext = level ? `L'alumne es troba al nivell de: ${level}.` : '';
     const prompt = `CONTEXT DE L'ALUMNE:
@@ -40,6 +45,8 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
 
     try {
       return await this.withRetry(async () => {
+        // ALWAYS create a new instance right before the call to ensure the latest API key is used
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-3-pro-preview',
           contents: prompt,
@@ -59,13 +66,16 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     }
   }
 
+  /**
+   * Generates orientations based on conclusions.
+   */
   async generateOrientations(conclusions: string, level?: string): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const levelContext = level ? `Nota: L'alumne és de nivell ${level}.` : '';
     const prompt = `${levelContext}\n\nBasant-te en les següents conclusions de l'apartat 1, redacta l'apartat 2 d'orientacions:\n\n${conclusions}`;
 
     try {
       return await this.withRetry(async () => {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-3-pro-preview',
           contents: prompt,
@@ -85,9 +95,10 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     }
   }
 
+  /**
+   * OCR and image analysis for educational reports.
+   */
   async visionExtractText(imagesBase64: string[]): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
     const imageParts = imagesBase64.map(base64 => ({
       inlineData: {
         data: base64.split(',')[1],
@@ -109,7 +120,7 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
 
     try {
       return await this.withRetry(async () => {
-        // Utilitzem gemini-3-pro-preview per a una anàlisi visual més profunda i precisa
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-3-pro-preview',
           contents: { parts: [...imageParts, { text: prompt }] },
@@ -122,12 +133,15 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
     }
   }
 
+  /**
+   * Refines existing HTML text for style and brevity.
+   */
   async refineText(text: string, instruction: string): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = `TEXT ACTUAL:\n${text}\n\nINSTRUCCIÓ DE REFINAMENT:\n${instruction}`;
 
     try {
       return await this.withRetry(async () => {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
           contents: prompt,
@@ -144,22 +158,26 @@ RECORDA: És un document confidencial i molt important, cada dada numèrica ha d
     }
   }
 
+  /**
+   * Context-aware assistant for pedagogical advice.
+   */
   async askAssistant(message: string, context: string, history: {role: string, parts: {text: string}[]}[] = []): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [
-          ...history,
-          { role: 'user', parts: [{ text: `CONTEXT ACTUAL (Notes de l'alumne):\n${context}\n\nPREGUNTA DE L'USUARI: ${message}` }] }
-        ],
-        config: {
-          systemInstruction: SYSTEM_PROMPT_ASSISTANT,
-          temperature: 0.7,
-        },
+      return await this.withRetry(async () => {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: [
+            ...history,
+            { role: 'user', parts: [{ text: `CONTEXT ACTUAL (Notes de l'alumne):\n${context}\n\nPREGUNTA DE L'USUARI: ${message}` }] }
+          ],
+          config: {
+            systemInstruction: SYSTEM_PROMPT_ASSISTANT,
+            temperature: 0.7,
+          },
+        });
+        return response.text || "No tinc resposta per a això.";
       });
-      return response.text || "No tinc resposta per a això.";
     } catch (err) {
       return "Ho sento, he tingut un problema processant la teva consulta.";
     }

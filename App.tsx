@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
@@ -6,10 +7,14 @@ import { fileService } from './services/fileService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
-// Fix: Use any to avoid type conflict with existing AIStudio definition if present
+// Define the correct AIStudio interface to resolve type conflicts
 declare global {
+  interface AIStudio {
+    hasSelectedApiKey(): Promise<boolean>;
+    openSelectKey(): Promise<void>;
+  }
   interface Window {
-    aistudio?: any;
+    aistudio?: AIStudio;
   }
 }
 
@@ -60,14 +65,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkApiKey = async () => {
-      // Si estem en un entorn que requereix selecció de clau (com AI Studio/Vercel amb models Pro)
+      // Check for AIStudio key selection as per guidelines
       if (window.aistudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
         if (!selected && !process.env.API_KEY) {
           setHasApiKey(false);
         }
       } else if (!process.env.API_KEY) {
-        // Si no hi ha clau ni mecanisme de selecció, avisem
         console.warn("No s'ha detectat cap clau d'API a process.env.API_KEY");
       }
     };
@@ -93,7 +97,8 @@ const App: React.FC = () => {
   const handleOpenKeySelector = async () => {
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
-      setHasApiKey(true); // Mitiguem race condition
+      // Assume success to avoid race conditions per guidelines
+      setHasApiKey(true);
     }
   };
 
@@ -118,7 +123,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Fix: Added missing toggleBlock function
   const toggleBlock = (id: number) => {
     setReport(prev => {
       const selectedBlocks = prev.selectedBlocks.includes(id)
@@ -147,7 +151,14 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr: any) {
           console.error("Error en visió:", visionErr);
-          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API.");
+          // Handle specific key errors during vision extraction
+          if (visionErr.message?.includes('Requested entity was not found')) {
+            setHasApiKey(false);
+            setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
+            handleOpenKeySelector();
+          } else {
+            setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API.");
+          }
         }
       }
 
@@ -181,7 +192,12 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      if (err.message?.includes('API Key')) {
+      // Handle key reset as per guidelines
+      if (err.message?.includes('Requested entity was not found')) {
+        setHasApiKey(false);
+        setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
+        handleOpenKeySelector();
+      } else if (err.message?.includes('API Key')) {
         setHasApiKey(false);
         setError("Cal configurar una clau d'API vàlida per utilitzar la IA.");
       } else {
@@ -201,7 +217,13 @@ const App: React.FC = () => {
       setStep(AppStep.ORIENTATIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`${err.message}`);
+      if (err.message?.includes('Requested entity was not found')) {
+        setHasApiKey(false);
+        setError("Error en la selecció de la clau. Si us plau, torna-la a seleccionar.");
+        handleOpenKeySelector();
+      } else {
+        setError(`${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -222,7 +244,13 @@ const App: React.FC = () => {
       const response = await geminiService.askAssistant(msg, report.rawInput, history);
       setChatMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: 'model', content: "Error de connexió. Revisa la teva clau d'API." }]);
+      if (err.message?.includes('Requested entity was not found')) {
+        setHasApiKey(false);
+        setChatMessages(prev => [...prev, { role: 'model', content: "Error en la selecció de la clau. Si us plau, torna-la a seleccionar." }]);
+        handleOpenKeySelector();
+      } else {
+        setChatMessages(prev => [...prev, { role: 'model', content: "Error de connexió. Revisa la teva clau d'API." }]);
+      }
     } finally {
       setIsChatLoading(false);
     }
@@ -286,7 +314,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Pantalla de configuració de clau si no es detecta
   if (!hasApiKey && window.aistudio) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -572,7 +599,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Floating Chat Assistant */}
       <div className="fixed bottom-6 right-6 z-50 no-print">
         {showChat ? (
           <div className="bg-white w-80 md:w-96 h-[550px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
