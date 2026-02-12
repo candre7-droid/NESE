@@ -116,7 +116,7 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr: any) {
           console.error("Error en visió:", visionErr);
-          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat. Revisa la clau d'API a Vercel.");
+          setError("L'anàlisi visual ha fallat. Revisa la clau d'API a les variables d'entorn.");
         }
       }
 
@@ -150,7 +150,7 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setError(`Error de la IA: ${err.message || 'No s\'ha pogut generar el text. Revisa la configuració de la clau d\'API.'}`);
+      setError(`Error de la IA: ${err.message || 'Error en generar conclusions. Revisa la clau d\'API.'}`);
     } finally {
       setLoading(false);
     }
@@ -207,11 +207,8 @@ const App: React.FC = () => {
   };
 
   const resetApp = () => {
-    if (window.confirm("Vols començar un nou informe? Es perdran les dades no guardades.")) {
-      setReport(initialReportState);
-      setStep(AppStep.INPUT);
-      setChatMessages([]);
-      setError(null);
+    if (window.confirm("Vols començar un nou informe? Es perdran les dades no guardades i es regenerarà la pàgina per complet.")) {
+      window.location.reload();
     }
   };
 
@@ -445,7 +442,7 @@ const App: React.FC = () => {
               <button
                 onClick={step === AppStep.CONCLUSIONS ? generateApartat2 : finalizeReport}
                 disabled={loading}
-                className="flex items-center gap-4 px-12 py-6 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-[2.5rem] shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 tracking-tight"
+                className="flex items-center gap-4 px-12 py-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-[2.5rem] shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 tracking-tight"
               >
                 {loading ? <i className="fas fa-spinner fa-spin"></i> : <i className={step === AppStep.CONCLUSIONS ? "fas fa-compass" : "fas fa-check-double"}></i>}
                 {loading ? 'GENERANT...' : step === AppStep.CONCLUSIONS ? 'CONTINUAR A ORIENTACIONS' : 'FINALITZAR INFORME'}

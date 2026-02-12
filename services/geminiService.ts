@@ -45,6 +45,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
 
     try {
       return await this.withRetry(async () => {
+        // ALWAYS create a new instance right before the call to ensure the latest API key is used
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
@@ -111,7 +112,7 @@ La teva missió és extreure tot el text d'aquestes imatges amb la màxima preci
 INSTRUCCIONS CRUCIALS:
 1. Si hi ha taules de resultats (WISC-V, BAS-II, PROLEC, etc.), transcriu-les de forma clara, mantenint l'ordre de columnes i les puntuacions numèriques (CI, índexs, centils).
 2. Transcriu el text de forma literal, sense resumir ni ometre cap detall.
-3. Si el document tel segells o capçaleres oficials, identifica'ls breument: [Capçalera: Generalitat de Catalunya / Nom del Centre].
+3. Si el document té segells o capçaleres oficials, identifica'ls breument: [Capçalera: Generalitat de Catalunya / Nom del Centre].
 4. Separa les pàgines clarament amb '--- Pàgina X ---'.
 5. Mantingues l'estructura de paràgrafs i títols.
 
