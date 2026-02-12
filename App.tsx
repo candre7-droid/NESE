@@ -3,6 +3,7 @@ import { AppStep, ReportData } from './types';
 import { BLOCK_OPTIONS, SCHOOL_LEVELS } from './constants';
 import { geminiService } from './services/geminiService';
 import { fileService } from './services/fileService';
+import { exportService } from './services/exportService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
@@ -211,6 +212,17 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExportWord = async () => {
+    setLoading(true);
+    try {
+      await exportService.exportToWord(report);
+    } catch (err) {
+      setError("No s'ha pogut exportar el fitxer Word.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!authorized) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -255,7 +267,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="font-black text-slate-800 text-lg leading-none">Elaboració NESE</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Inclusió Educativa</p>
+            <p className="text-[10px] text-slate-400 font-bold tracking-wider">Assistent en redacció d'informes</p>
           </div>
         </div>
         
@@ -269,9 +281,9 @@ const App: React.FC = () => {
           </button>
           <button 
             onClick={resetApp}
-            className="hidden md:flex items-center gap-2 px-4 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50 border border-emerald-100 rounded-xl transition-all uppercase tracking-wider"
+            className="hidden md:flex items-center gap-2 px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md"
           >
-            <i className="fas fa-plus text-[10px]"></i> Nou Informe
+            <i className="fas fa-plus text-[10px]"></i> Nou informe
           </button>
         </div>
       </header>
@@ -457,8 +469,9 @@ const App: React.FC = () => {
                 <i className="fas fa-edit mr-2"></i> Editar
               </button>
               <div className="flex gap-3">
-                <button onClick={() => window.print()} className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-black text-xs rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm uppercase tracking-widest">
-                  <i className="fas fa-file-pdf text-emerald-600"></i> Exportar PDF
+                <button onClick={handleExportWord} disabled={loading} className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-black text-xs rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm uppercase tracking-widest disabled:opacity-50">
+                  {loading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-file-word text-blue-600"></i>}
+                  Exportar Word (.docx)
                 </button>
                 <button onClick={resetApp} className="px-6 py-3 bg-emerald-600 text-white font-black text-xs rounded-2xl hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg uppercase tracking-widest">
                   <i className="fas fa-plus-circle"></i> Nou Informe
@@ -503,15 +516,15 @@ const App: React.FC = () => {
 
       <div className="fixed bottom-6 right-6 z-50 no-print">
         {showChat ? (
-          <div className="bg-white w-[95vw] md:w-1/2 h-[550px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
-            <div className="bg-slate-800 p-5 flex justify-between items-center text-white">
+          <div className="bg-white w-[95vw] md:w-[85vw] h-[450px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
+            <div className="bg-emerald-800 p-5 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
                   <GeminiIcon className="w-5 h-5" />
                 </div>
                 <p className="font-black text-sm uppercase tracking-tighter">Assistent de redacció NESE</p>
               </div>
-              <button onClick={() => setShowChat(false)} className="hover:bg-slate-700 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
+              <button onClick={() => setShowChat(false)} className="hover:bg-emerald-700 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
                 <i className="fas fa-times text-sm"></i>
               </button>
             </div>
@@ -527,7 +540,7 @@ const App: React.FC = () => {
               )}
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[90%] p-4 rounded-3xl text-xs font-medium shadow-sm leading-relaxed ${msg.role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}>
+                  <div className={`max-w-[90%] p-4 rounded-3xl text-xs font-medium shadow-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-700 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}>
                     {msg.content}
                   </div>
                 </div>
@@ -549,7 +562,7 @@ const App: React.FC = () => {
             </div>
           </div>
         ) : (
-          <button onClick={() => setShowChat(true)} className="w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all border-4 border-white active:scale-95">
+          <button onClick={() => setShowChat(true)} className="w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all active:scale-95">
             <GeminiIcon className="w-8 h-8" />
           </button>
         )}
