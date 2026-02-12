@@ -24,6 +24,7 @@ export class GeminiService {
     throw lastError;
   }
 
+  // Uses gemini-3-pro-preview for advanced psychopedagogical reasoning tasks
   async generateConclusions(input: string, selectedBlocks: number[], level?: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const blocksText = selectedBlocks.join(", ");
@@ -41,7 +42,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     try {
       return await this.withRetry(async () => {
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3-pro-preview',
           contents: prompt,
           config: {
             systemInstruction: SYSTEM_PROMPT_PART_1,
@@ -55,10 +56,11 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
       });
     } catch (err: any) {
       console.error("Error Gemini Apartat 1:", err);
-      throw new Error(`Error de connexió amb la IA: ${err.message || 'Error desconegut'}`);
+      throw err;
     }
   }
 
+  // Uses gemini-3-pro-preview for specialized inclusion orientations
   async generateOrientations(conclusions: string, level?: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const levelContext = level ? `Nota: L'alumne és de nivell ${level}.` : '';
@@ -67,7 +69,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     try {
       return await this.withRetry(async () => {
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3-pro-preview',
           contents: prompt,
           config: {
             systemInstruction: SYSTEM_PROMPT_PART_2,
@@ -81,17 +83,17 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
       });
     } catch (err: any) {
       console.error("Error Gemini Apartat 2:", err);
-      throw new Error(`Error de generació d'orientacions: ${err.message || 'Error desconegut'}`);
+      throw err;
     }
   }
 
+  // Uses gemini-3-flash-preview for high-speed OCR visual analysis
   async visionExtractText(imagesBase64: string[]): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Creem els part d'imatge per a Gemini
     const imageParts = imagesBase64.map(base64 => ({
       inlineData: {
-        data: base64.split(',')[1], // Eliminem el prefix data:image/jpeg;base64,
+        data: base64.split(',')[1],
         mimeType: 'image/jpeg'
       }
     }));
@@ -108,7 +110,7 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
       });
     } catch (err: any) {
       console.error("Error en visió Gemini:", err);
-      throw new Error("No s'ha pogut realitzar l'extracció visual (OCR) amb IA.");
+      throw err;
     }
   }
 
