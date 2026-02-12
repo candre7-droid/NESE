@@ -503,7 +503,7 @@ const App: React.FC = () => {
 
       <div className="fixed bottom-6 right-6 z-50 no-print">
         {showChat ? (
-          <div className="bg-white w-[90vw] md:w-2/3 h-[360px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
+          <div className="bg-white w-[95vw] md:w-1/2 h-[550px] rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp">
             <div className="bg-slate-800 p-5 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -515,10 +515,19 @@ const App: React.FC = () => {
                 <i className="fas fa-times text-sm"></i>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
+              {chatMessages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                    <i className="fas fa-magic"></i>
+                  </div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Com puc ajudar-te?</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Pots demanar-me suggeriments de blocs NESE, canvis de to o aclariments sobre el Decret 150/2017.</p>
+                </div>
+              )}
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-4 rounded-3xl text-xs font-medium shadow-sm ${msg.role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}>
+                  <div className={`max-w-[90%] p-4 rounded-3xl text-xs font-medium shadow-sm leading-relaxed ${msg.role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}>
                     {msg.content}
                   </div>
                 </div>
@@ -532,15 +541,15 @@ const App: React.FC = () => {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Pregunta o demana ajustos..."
-                className="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-3 text-xs outline-none"
+                className="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-4 text-xs outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
               />
-              <button onClick={handleSendMessage} disabled={isChatLoading || !chatInput.trim()} className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 transition-all">
-                <i className="fas fa-paper-plane"></i>
+              <button onClick={handleSendMessage} disabled={isChatLoading || !chatInput.trim()} className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md active:scale-95">
+                {isChatLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
               </button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setShowChat(true)} className="w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all border-4 border-white">
+          <button onClick={() => setShowChat(true)} className="w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all border-4 border-white active:scale-95">
             <GeminiIcon className="w-8 h-8" />
           </button>
         )}
