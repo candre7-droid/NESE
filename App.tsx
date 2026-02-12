@@ -7,17 +7,6 @@ import { fileService } from './services/fileService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
-// Define the correct AIStudio interface to resolve type conflicts
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey(): Promise<boolean>;
-    openSelectKey(): Promise<void>;
-  }
-  interface Window {
-    aistudio?: AIStudio;
-  }
-}
-
 const GeminiIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
     <path d="M12 3C12 3 12 9 18 12C12 15 12 21 12 21C12 21 12 15 6 12C12 9 12 3 12 3Z" />
@@ -63,10 +52,15 @@ const App: React.FC = () => {
 
   const [report, setReport] = useState<ReportData>(initialReportState);
 
+  // Removed explicit declare global block to fix "Duplicate identifier" errors
+  // Standardizing on assuming window.aistudio is provided by the execution environment.
+
   useEffect(() => {
     const checkApiKey = async () => {
       // Check for AIStudio key selection as per guidelines
+      // @ts-ignore - Assuming aistudio is globally defined in the runtime context
       if (window.aistudio) {
+        // @ts-ignore
         const selected = await window.aistudio.hasSelectedApiKey();
         if (!selected && !process.env.API_KEY) {
           setHasApiKey(false);
@@ -95,7 +89,9 @@ const App: React.FC = () => {
   }, [chatMessages, showChat]);
 
   const handleOpenKeySelector = async () => {
+    // @ts-ignore
     if (window.aistudio) {
+      // @ts-ignore
       await window.aistudio.openSelectKey();
       // Assume success to avoid race conditions per guidelines
       setHasApiKey(true);
@@ -314,6 +310,7 @@ const App: React.FC = () => {
     );
   }
 
+  // @ts-ignore
   if (!hasApiKey && window.aistudio) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
