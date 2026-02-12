@@ -24,7 +24,6 @@ export class GeminiService {
     throw lastError;
   }
 
-  // Uses gemini-3-pro-preview for advanced psychopedagogical reasoning tasks
   async generateConclusions(input: string, selectedBlocks: number[], level?: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const blocksText = selectedBlocks.join(", ");
@@ -60,7 +59,6 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     }
   }
 
-  // Uses gemini-3-pro-preview for specialized inclusion orientations
   async generateOrientations(conclusions: string, level?: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const levelContext = level ? `Nota: L'alumne és de nivell ${level}.` : '';
@@ -87,7 +85,6 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
     }
   }
 
-  // Uses gemini-3-flash-preview for high-speed OCR visual analysis
   async visionExtractText(imagesBase64: string[]): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
@@ -98,12 +95,23 @@ Redacta l'apartat 1 de l'informe seguint estrictament les instruccions del teu r
       }
     }));
 
-    const prompt = "Ets un expert en transcripció de documents psicopedagògics. Transcriu el text d'aquestes imatges de forma fidel, mantenint l'estructura i ignorant taques o elements no textuals. Si hi ha diverses pàgines, separa-les amb '--- Pàgina X ---'.";
+    const prompt = `Ets un expert en transcripció de documents oficials i informes psicopedagògics de Catalunya (EAP).
+La teva missió és extreure tot el text d'aquestes imatges amb la màxima precisió possible.
+
+INSTRUCCIONS CRUCIALS:
+1. Si hi ha taules de resultats (WISC-V, BAS-II, PROLEC, etc.), transcriu-les de forma clara, mantenint l'ordre de columnes i les puntuacions numèriques (CI, índexs, centils).
+2. Transcriu el text de forma literal, sense resumir ni ometre cap detall.
+3. Si el document té segells o capçaleres oficials, identifica'ls breument: [Capçalera: Generalitat de Catalunya / Nom del Centre].
+4. Separa les pàgines clarament amb '--- Pàgina X ---'.
+5. Mantingues l'estructura de paràgrafs i títols.
+
+RECORDA: És un document confidencial i molt important, cada dada numèrica ha de ser exacta.`;
 
     try {
       return await this.withRetry(async () => {
+        // Utilitzem gemini-3-pro-preview per a una anàlisi visual més profunda i precisa
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3-pro-preview',
           contents: { parts: [...imageParts, { text: prompt }] },
         });
         return response.text || "";

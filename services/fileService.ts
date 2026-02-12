@@ -13,7 +13,6 @@ export class FileService {
   constructor() {
     if (typeof window !== 'undefined') {
       const checkPdfJs = setInterval(() => {
-        // En versions modernes (4.x), pdfjsLib pot trigar un moment a ser global si es carrega com a mòdul
         const lib = (window as any).pdfjsLib;
         if (lib) {
           lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -57,33 +56,42 @@ export class FileService {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
+    let pagesWithLowText = 0;
     
-    // Extracció de text estàndard
+    // Extracció de text i anàlisi de densitat
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      if (pageText.trim()) {
-        fullText += `--- Pàgina ${i} ---\n${pageText}\n\n`;
+      
+      // Si la pàgina té menys de 100 caràcters, és molt probable que sigui una imatge
+      if (pageText.trim().length < 100) {
+        pagesWithLowText++;
       }
+      
+      fullText += `--- Pàgina ${i} ---\n${pageText}\n\n`;
     }
     
-    // Llindar per detectar escanejos
-    const threshold = pdf.numPages * 50;
-    if (fullText.trim().length < threshold) {
+    // Decidim si és un escaneig: si més del 50% de les pàgines tenen poc text
+    const isScan = pagesWithLowText > (pdf.numPages / 2) || fullText.trim().length < (pdf.numPages * 50);
+    
+    if (isScan) {
       const images: string[] = [];
-      const pagesToProcess = Math.min(pdf.numPages, 5);
+      // Capturem fins a 8 pàgines per no sobrecarregar el payload, amb bona resolució
+      const pagesToProcess = Math.min(pdf.numPages, 8);
       
       for (let i = 1; i <= pagesToProcess; i++) {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2.0 });
+        // Augmentem l'escala a 2.5 per a una millor definició del text petit (proves psicomètriques)
+        const viewport = page.getViewport({ scale: 2.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         if (context) {
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           await page.render({ canvasContext: context, viewport: viewport }).promise;
-          images.push(canvas.toDataURL('image/jpeg', 0.8));
+          // Qualitat alta per al reconeixement de caràcters
+          images.push(canvas.toDataURL('image/jpeg', 0.9));
         }
       }
 
