@@ -6,18 +6,6 @@ import { fileService } from './services/fileService';
 import { StepIndicator } from './components/StepIndicator';
 import { RichTextEditor } from './components/RichTextEditor';
 
-// Augmented Window interface to include aistudio property.
-declare global {
-  // Define AIStudio interface to match the environment's expected type and resolve conflicts
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-  interface Window {
-    aistudio?: AIStudio;
-  }
-}
-
 // Icona de Gemini en SVG per a una aparença oficial
 const GeminiIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -33,7 +21,6 @@ const App: React.FC = () => {
   const [authorized, setAuthorized] = useState<boolean>(() => {
     return sessionStorage.getItem('nese_auth') === 'true';
   });
-  const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [passInput, setPassInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
@@ -65,28 +52,6 @@ const App: React.FC = () => {
 
   const [report, setReport] = useState<ReportData>(initialReportState);
 
-  // Check for API key availability on mount using standard studio checks
-  useEffect(() => {
-    const checkApiKey = async () => {
-      if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
-        setHasApiKey(true);
-        return;
-      }
-
-      if (window.aistudio) {
-        try {
-          const selected = await window.aistudio.hasSelectedApiKey();
-          setHasApiKey(selected);
-        } catch (e) {
-          setHasApiKey(false);
-        }
-      } else {
-        setHasApiKey(false);
-      }
-    };
-    checkApiKey();
-  }, []);
-
   useEffect(() => {
     if (!authorized) return;
     const history = localStorage.getItem('nese_reports_history');
@@ -111,13 +76,6 @@ const App: React.FC = () => {
     } else {
       setAuthError(true);
       setTimeout(() => setAuthError(false), 2000);
-    }
-  };
-
-  const handleOpenApiKeyDialog = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true);
     }
   };
 
@@ -150,10 +108,7 @@ const App: React.FC = () => {
           textToAppend = (textToAppend ? textToAppend + "\n\n" : "") + "[Extracció Visual IA]:\n" + aiText;
         } catch (visionErr: any) {
           console.error("Error en visió:", visionErr);
-          if (visionErr.message?.includes("Requested entity was not found")) {
-            setHasApiKey(false);
-          }
-          setError("S'ha detectat un PDF escanejat per la IA de visió però ha fallat.");
+          setError("S'ha detectat un PDF escanejat però l'anàlisi visual ha fallat.");
         }
       }
 
@@ -162,9 +117,6 @@ const App: React.FC = () => {
         rawInput: prev.rawInput + (prev.rawInput ? '\n\n' : '') + `[Contingut de ${file.name}]:\n` + textToAppend 
       }));
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) {
-        setHasApiKey(false);
-      }
       setError(`Error en el fitxer: ${err.message || 'Error desconegut'}`);
     } finally {
       setFileProcessing(false);
@@ -199,9 +151,6 @@ const App: React.FC = () => {
       setStep(AppStep.CONCLUSIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) {
-        setHasApiKey(false);
-      }
       setError(`${err.message}`);
     } finally {
       setLoading(false);
@@ -221,9 +170,6 @@ const App: React.FC = () => {
       setStep(AppStep.ORIENTATIONS);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) {
-        setHasApiKey(false);
-      }
       setError(`${err.message}`);
     } finally {
       setLoading(false);
@@ -245,9 +191,6 @@ const App: React.FC = () => {
       const response = await geminiService.askAssistant(msg, report.rawInput, history);
       setChatMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) {
-        setHasApiKey(false);
-      }
       setChatMessages(prev => [...prev, { role: 'model', content: "Ho sento, s'ha produït un error." }]);
     } finally {
       setIsChatLoading(false);
@@ -315,28 +258,6 @@ const App: React.FC = () => {
           <div className="mt-6 pt-4 border-t border-slate-50 w-full text-center">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Equip d'Assessorament Psicopedagògic</span>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasApiKey) {
-    return (
-      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-lg border-4 border-white text-center animate-fadeIn">
-          <div className="mb-6 inline-flex w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full items-center justify-center text-4xl shadow-inner">
-            <i className="fas fa-key"></i>
-          </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Configuració de Clau</h2>
-          <p className="text-slate-600 mb-8 leading-relaxed font-medium">
-            Cal seleccionar una clau d'API d'un projecte GCP amb facturació per utilitzar les funcionalitats d'IA.
-          </p>
-          <button 
-            onClick={handleOpenApiKeyDialog}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-2xl shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
-          >
-            <i className="fas fa-plus-circle"></i> CONFIGURAR CLAU API
-          </button>
         </div>
       </div>
     );
