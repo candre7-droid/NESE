@@ -573,7 +573,7 @@ const App: React.FC = () => {
       </div>
 
       <footer className="py-10 px-6 text-center text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] no-print opacity-60">
-        © {new Date().getFullYear()} ELABORACIÓ NESE • REDACCIÓ COMPETENCIAL INCLUSIVA
+        EINA ELABORADA PEL SERVEI EDUCATIU VIII CASTELLAR DEL VALLÈS
       </footer>
     </div>
   );

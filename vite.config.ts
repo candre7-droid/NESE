@@ -3,9 +3,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   define: {
-    // Aquesta definició és crucial per a Vercel. 
-    // Vite substituirà process.env.API_KEY pel valor real durant el build.
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "")
+    // Aquesta definició és crucial per a Vercel i altres entorns. 
+    // Vite substituirà process.env per les variables d'entorn reals.
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ""),
+    'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || "")
   },
   build: {
     chunkSizeWarningLimit: 2000,
